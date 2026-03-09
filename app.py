@@ -142,26 +142,21 @@ if df is not None and not df.empty:
     
     st.sidebar.header("🔍 Filtros de Análise")
     
-    # 1. Filtro de Ano
     anos_lista = sorted([a for a in df['ano'].unique() if a != 0], reverse=True)
     ano_sel = st.sidebar.selectbox("Selecione o Ano", anos_lista)
     
-    # 2. Filtro de Meses (Multisseleção - ORDEM CRONOLÓGICA)
     df_ano = df[df['ano'] == ano_sel]
     meses_ordem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     meses_disponiveis = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
     meses_sel = st.sidebar.multiselect("Selecione os Meses", meses_disponiveis, default=meses_disponiveis)
     
-    # 3. Filtro de Produto (ORDEM ALFABÉTICA)
     produtos = ["Todos"] + sorted(df['produto'].unique().tolist())
     produto_sel = st.sidebar.selectbox("Produto", produtos)
     
-    # 4. Filtro de Vendedor (ORDEM ALFABÉTICA)
     vendedores = ["Todos"] + sorted(df['vendedor'].unique().tolist())
     vendedor_sel = st.sidebar.selectbox("Vendedor", vendedores)
     
-    # 5. Filtro de SDR (ORDEM ALFABÉTICA)
     sdrs = ["Todos"] + sorted(df['sdr'].unique().tolist())
     sdr_sel = st.sidebar.selectbox("SDR", sdrs)
     
@@ -190,18 +185,20 @@ if df is not None and not df.empty:
     total_cancelamentos_hist = len(df[df['status'] == 'Cancelada'])
     base_ativa_total = total_ativacoes_hist - total_cancelamentos_hist
 
-    # --- EXIBIÇÃO DE CARDS (NOMENCLATURA AJUSTADA) ---
-    c1, c2, c3 = st.columns(3)
-    c1.metric("MRR Ativo (Net New)", f"R$ {mrr_ativo:,.2f}")
-    c2.metric("Ticket Médio", f"R$ {ticket_medio:,.2f}")
-    c3.metric("Total Clientes Ativos (Base)", base_ativa_total)
+    # --- EXIBIÇÃO DE CARDS ---
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("MRR Conquistado", f"R$ {mrr_conquistado:,.2f}")
+    c2.metric("MRR Ativo (Net New)", f"R$ {mrr_ativo:,.2f}")
+    c3.metric("MRR Perdido (Churn)", f"R$ {mrr_cancelado:,.2f}", delta=f"-{mrr_cancelado:,.2f}", delta_color="inverse")
+    c4.metric("Ticket Médio", f"R$ {ticket_medio:,.2f}")
     
     st.write("") # Espaçamento
     
-    c4, c5, c6 = st.columns(3)
-    c4.metric("Clientes fechado (no periodo)", clientes_fechados)
-    c5.metric("Clientes Cancelados (no periodo)", clientes_cancelados)
-    c6.metric("Adesão total (no periodo)", f"R$ {df_f['adesao'].sum():,.2f}")
+    c5, c6, c7, c8 = st.columns(4)
+    c5.metric("Clientes fechado (no periodo)", clientes_fechados)
+    c6.metric("Clientes Cancelados (no periodo)", clientes_cancelados)
+    c7.metric("Adesão total (no periodo)", f"R$ {df_f['adesao'].sum():,.2f}")
+    c8.metric("Total Clientes Ativos (Base)", base_ativa_total)
 
     st.divider()
     
@@ -209,19 +206,27 @@ if df is not None and not df.empty:
     col_esq, col_dir = st.columns(2)
     
     with col_esq:
+        # Gráfico de Evolução Mensal de MRR Conquistado
         df_evolucao = df_ano.groupby(['mes_num', 'mes_nome'])['mrr'].sum().reset_index()
         df_evolucao = df_evolucao.sort_values('mes_num')
         fig_evolucao = px.bar(df_evolucao, x='mes_nome', y='mrr', 
-                             title=f"Evolução Mensal de MRR - {ano_sel}",
-                             labels={'mes_nome': 'Mês', 'mrr': 'MRR Conquistado (R$)'},
-                             color_discrete_sequence=['#3498DB'])
+                             title=f"Evolução Mensal de MRR Conquistado - {ano_sel}",
+                             labels={'mes_nome': 'Mês', 'mrr': 'MRR (R$)'},
+                             color_discrete_sequence=['#2ECC71'])
         st.plotly_chart(fig_evolucao, use_container_width=True)
         
     with col_dir:
-        fig_produto = px.pie(df_f, names='produto', values='receita_total', 
-                          title="Distribuição de Receita por Produto", hole=0.4,
-                          color_discrete_sequence=px.colors.qualitative.Pastel)
-        st.plotly_chart(fig_produto, use_container_width=True)
+        # NOVO: Gráfico de Evolução Mensal de MRR Perdido
+        df_churn_evol = df_ano[df_ano['status'] == 'Cancelada'].groupby(['mes_num', 'mes_nome'])['mrr'].sum().reset_index()
+        # Garantir que todos os meses apareçam, mesmo com churn zero
+        df_churn_evol = df_evolucao[['mes_num', 'mes_nome']].merge(df_churn_evol, on=['mes_num', 'mes_nome'], how='left').fillna(0)
+        df_churn_evol = df_churn_evol.sort_values('mes_num')
+        
+        fig_churn = px.bar(df_churn_evol, x='mes_nome', y='mrr', 
+                          title=f"Evolução Mensal de MRR Perdido (Churn) - {ano_sel}",
+                          labels={'mes_nome': 'Mês', 'mrr': 'MRR Perdido (R$)'},
+                          color_discrete_sequence=['#E74C3C'])
+        st.plotly_chart(fig_churn, use_container_width=True)
 
     # Tabela de Detalhamento
     st.subheader("📋 Detalhamento das Operações")
