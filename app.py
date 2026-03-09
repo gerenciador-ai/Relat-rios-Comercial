@@ -80,17 +80,14 @@ def processar_dados():
     df['cliente'] = df_vendas[map_cols['cliente']] if map_cols['cliente'] else "N/A"
     df['plano'] = df_vendas[map_cols['plano']] if map_cols['plano'] else "N/A"
     
-    # Engenharia de Datas baseada na Data de Ativação
+    # Engenharia de Datas baseada na Data de Ativação (Coluna H)
     if map_cols['data_ativacao']:
         df['data'] = pd.to_datetime(df_vendas[map_cols['data_ativacao']], errors='coerce', dayfirst=True)
-        # Criar colunas temporais apenas para datas válidas
-        df['mes_ano'] = df['data'].dt.strftime('%Y-%m').fillna("N/A")
+        df['mes_ano'] = df['data'].dt.strftime('%Y-%m').fillna("Sem Data")
         df['semana'] = df['data'].dt.isocalendar().week.fillna(0)
-        # Início da semana (Segunda-feira) - Tratamento seguro para NaT
-        df['inicio_semana'] = df['data'].apply(lambda x: x - pd.Timedelta(days=x.weekday()) if pd.notnull(x) else pd.NaT)
     else:
         df['data'] = pd.NaT
-        df['mes_ano'] = "N/A"
+        df['mes_ano'] = "Sem Data"
 
     # Processamento Financeiro
     df['mrr'] = parse_currency(df_vendas[map_cols['mrr']]) if map_cols['mrr'] else 0.0
@@ -108,8 +105,8 @@ def processar_dados():
             canc_cnpjs = df_cancelados[col_cnpj_canc].astype(str).str.replace(r'\D', '', regex=True).unique()
             df.loc[vendas_cnpj.isin(canc_cnpjs), 'status'] = 'Cancelada'
     
-    # Remover linhas onde não há cliente nem vendedor (linhas vazias da planilha)
-    df = df[~((df['cliente'] == "N/A") & (df['vendedor'] == "N/A"))]
+    # Remover apenas linhas que são totalmente "N/A" (vazias na planilha)
+    df = df[~((df['cliente'] == "N/A") & (df['vendedor'] == "N/A") & (df['mrr'] == 0))]
     
     return df
 
@@ -123,8 +120,8 @@ if df is not None and not df.empty:
     st.sidebar.header("🔍 Filtros de Análise")
     
     # Filtro de Mês/Ano
-    meses_lista = sorted([m for m in df['mes_ano'].unique() if m != "N/A"], reverse=True)
-    meses = ["Todos"] + meses_lista
+    meses_lista = sorted([m for m in df['mes_ano'].unique() if m != "Sem Data"], reverse=True)
+    meses = ["Todos"] + meses_lista + (["Sem Data"] if "Sem Data" in df['mes_ano'].unique() else [])
     mes_sel = st.sidebar.selectbox("Período (Mês/Ano)", meses)
     
     # Filtro de Vendedor
@@ -183,4 +180,4 @@ if df is not None and not df.empty:
     st.dataframe(df_f[cols_view].sort_values('data', ascending=False), use_container_width=True)
 
 else:
-    st.error("Nenhum dado válido encontrado. Verifique se a coluna 'Data de Ativação' está preenchida na planilha.")
+    st.error("Nenhum dado encontrado. Verifique a conexão com as planilhas.")
