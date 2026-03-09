@@ -1,8 +1,7 @@
 import pandas as pd
 import streamlit as st
 import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Configuração da página
 st.set_page_config(layout="wide", page_title="Dashboard de Vendas e Cancelamentos")
@@ -11,218 +10,101 @@ st.set_page_config(layout="wide", page_title="Dashboard de Vendas e Cancelamento
 VENDAS_ID = "1df7wNT1XQaiVK38vNdjbQudXkeH-lHTZWoYQ9gikZ0M"
 CANCELADOS_ID = "1GDU6qVJ9Gf9C9lwHx2KwOiTltyeUPWhD_y3ODUczuTw"
 
-@st.cache_data
-def load_vendas():
-    """Carregar dados de vendas do Google Sheets"""
-    url = f"https://docs.google.com/spreadsheets/d/{VENDAS_ID}/export?format=csv"
-    df = pd.read_csv(url)
-    return df
-
-@st.cache_data
-def load_cancelados():
-    """Carregar dados de cancelamentos do Google Sheets"""
-    url = f"https://docs.google.com/spreadsheets/d/{CANCELADOS_ID}/export?format=csv"
-    df = pd.read_csv(url)
-    return df
+@st.cache_data(ttl=600) # Atualiza o cache a cada 10 minutos
+def load_data(sheet_id):
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+    try:
+        df = pd.read_csv(url )
+        # Normalizar nomes de colunas: remover espaços e colocar em minúsculo
+        df.columns = df.columns.str.strip().str.lower()
+        return df
+    except Exception as e:
+        st.error(f"Erro ao carregar planilha {sheet_id}: {e}")
+        return pd.DataFrame()
 
 def processar_dados():
-    """Processar e mesclar os dados"""
-    try:
-        # Carregar dados
-        df_vendas = load_vendas()
-        df_cancelados = load_cancelados()
-        
-        # Limpar nomes de colunas
-        df_vendas.columns = df_vendas.columns.str.strip()
-        df_cancelados.columns = df_cancelados.columns.str.strip()
-        
-        # Normalizar CNPJ para mesclagem
-        df_vendas['CNPJ_Normalizado'] = df_vendas['CNPJ do Cliente'].astype(str).str.replace(r'\D', '', regex=True)
-        df_cancelados['CNPJ_Normalizado'] = df_cancelados['CNPJ do Cliente'].astype(str).str.replace(r'\D', '', regex=True)
-        
-        # Criar coluna de status
-        df_vendas['Status'] = 'Confirmada'
-        
-        # Mesclar dados
-        df_merged = df_vendas.merge(
-            df_cancelados[['CNPJ_Normalizado']].drop_duplicates(),
-            on='CNPJ_Normalizado',
-            how='left',
-            indicator=True
-        )
-        
-        # Atualizar status
-        df_merged.loc[df_merged['_merge'] == 'both', 'Status'] = 'Cancelada'
-        df_merged = df_merged.drop('_merge', axis=1)
-        
-        # Converter datas
-        df_merged['Data de Ativação'] = pd.to_datetime(df_merged['Data de Ativação'], errors='coerce')
-        
-        return df_merged
-        
-    except Exception as e:
-        st.error(f"Erro ao processar dados: {e}")
+    df_vendas = load_data(VENDAS_ID)
+    df_cancelados = load_data(CANCELADOS_ID)
+    
+    if df_vendas.empty:
         return None
 
-# Carregar e processar dados
+    # Mapeamento de colunas esperadas (ajustado para o que está nas suas planilhas)
+    # Suas colunas reais: 'vendedor', 'cliente', 'cnpj do cliente', 'plano', 'valor', 'data de ativação'
+    
+    # Normalizar CNPJ para comparação
+    col_cnpj = 'cnpj do cliente'
+    if col_cnpj in df_vendas.columns:
+        df_vendas['cnpj_norm'] = df_vendas[col_cnpj].astype(str).str.replace(r'\D', '', regex=True)
+    if col_cnpj in df_cancelados.columns:
+        df_cancelados['cnpj_norm'] = df_cancelados[col_cnpj].astype(str).str.replace(r'\D', '', regex=True)
+    
+    # Criar coluna de Status
+    df_vendas['status'] = 'Confirmada'
+    if not df_cancelados.empty and 'cnpj_norm' in df_cancelados.columns:
+        cancelados_cnpjs = df_cancelados['cnpj_norm'].unique()
+        df_vendas.loc[df_vendas['cnpj_norm'].isin(cancelados_cnpjs), 'status'] = 'Cancelada'
+    
+    # Converter datas
+    col_data = 'data de ativação'
+    if col_data in df_vendas.columns:
+        df_vendas[col_data] = pd.to_datetime(df_vendas[col_data], errors='coerce', dayfirst=True)
+    
+    return df_vendas
+
+# Início do Dashboard
 df = processar_dados()
 
 if df is not None:
-    # ===== SEÇÃO DE FILTROS =====
-    st.sidebar.title("🔍 Filtros")
-    
-    # Filtro de data
-    data_min = df['Data de Ativação'].min()
-    data_max = df['Data de Ativação'].max()
-    
-    date_range = st.sidebar.date_input(
-        "Período",
-        value=(data_min, data_max),
-        min_value=data_min,
-        max_value=data_max
-    )
-    
-    # Filtro de vendedor
-    vendedores = ['Todos'] + sorted(df['Vendedor'].unique().tolist())
-    vendedor_selecionado = st.sidebar.selectbox("Vendedor", vendedores)
-    
-    # Filtro de plano
-    planos = ['Todos'] + sorted(df['Plano'].unique().tolist())
-    plano_selecionado = st.sidebar.selectbox("Plano", planos)
-    
-    # Aplicar filtros
-    df_filtrado = df.copy()
-    
-    if len(date_range) == 2:
-        df_filtrado = df_filtrado[
-            (df_filtrado['Data de Ativação'].dt.date >= date_range[0]) &
-            (df_filtrado['Data de Ativação'].dt.date <= date_range[1])
-        ]
-    
-    if vendedor_selecionado != 'Todos':
-        df_filtrado = df_filtrado[df_filtrado['Vendedor'] == vendedor_selecionado]
-    
-    if plano_selecionado != 'Todos':
-        df_filtrado = df_filtrado[df_filtrado['Plano'] == plano_selecionado]
-    
-    # ===== SEÇÃO DE KPIs =====
     st.title("📊 Dashboard de Vendas e Cancelamentos")
     
-    # Calcular KPIs
-    vendas_brutas = df_filtrado['Valor'].sum()
-    vendas_canceladas = df_filtrado[df_filtrado['Status'] == 'Cancelada']['Valor'].sum()
-    vendas_liquidas = vendas_brutas - vendas_canceladas
-    total_vendas = len(df_filtrado)
-    total_cancelamentos = len(df_filtrado[df_filtrado['Status'] == 'Cancelada'])
-    taxa_cancelamento = (total_cancelamentos / total_vendas * 100) if total_vendas > 0 else 0
-    ticket_medio = vendas_liquidas / total_vendas if total_vendas > 0 else 0
+    # Sidebar - Filtros
+    st.sidebar.header("🔍 Filtros")
     
-    # Exibir KPIs
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    # Filtro de Data
+    col_data = 'data de ativação'
+    data_min = df[col_data].min()
+    data_max = df[col_data].max()
     
-    with col1:
-        st.metric("Vendas Brutas (R$)", f"R$ {vendas_brutas:,.2f}")
+    if pd.notnull(data_min) and pd.notnull(data_max):
+        periodo = st.sidebar.date_input("Período", [data_min, data_max])
     
-    with col2:
-        st.metric("Vendas Líquidas (R$)", f"R$ {vendas_liquidas:,.2f}")
+    # Filtro de Vendedor
+    vendedores = ["Todos"] + sorted(df['vendedor'].unique().tolist())
+    vendedor_sel = st.sidebar.selectbox("Vendedor", vendedores)
     
-    with col3:
-        st.metric("Total de Vendas", total_vendas)
+    # Aplicar Filtros
+    df_f = df.copy()
+    if vendedor_sel != "Todos":
+        df_f = df_f[df_f['vendedor'] == vendedor_sel]
     
-    with col4:
-        st.metric("Total de Cancelamentos", total_cancelamentos)
+    # KPIs
+    c1, c2, c3, c4 = st.columns(4)
+    vendas_totais = len(df_f)
+    cancelados = len(df_f[df_f['status'] == 'Cancelada'])
+    valor_total = df_f['valor'].sum()
     
-    with col5:
-        st.metric("Taxa de Cancelamento (%)", f"{taxa_cancelamento:.2f}%")
-    
-    with col6:
-        st.metric("Ticket Médio (R$)", f"R$ {ticket_medio:,.2f}")
+    c1.metric("Total de Vendas", vendas_totais)
+    c2.metric("Cancelamentos", cancelados)
+    c3.metric("Valor Total (R$)", f"R$ {valor_total:,.2f}")
+    c4.metric("Taxa de Cancelamento", f"{(cancelados/vendas_totais*100 if vendas_totais > 0 else 0):.1f}%")
     
     st.divider()
     
-    # ===== SEÇÃO DE GRÁFICOS =====
-    st.subheader("📈 Análises Visuais")
+    # Gráficos
+    col_esq, col_dir = st.columns(2)
     
-    # Gráfico 1: Evolução de Vendas Líquidas por Dia
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        df_diario = df_filtrado.groupby(df_filtrado['Data de Ativação'].dt.date).agg({
-            'Valor': 'sum',
-            'Status': lambda x: (x == 'Cancelada').sum()
-        }).reset_index()
-        df_diario.columns = ['Data', 'Vendas_Brutas', 'Cancelamentos']
-        df_diario['Vendas_Liquidas'] = df_diario['Vendas_Brutas'] - (df_diario['Cancelamentos'] * df_filtrado['Valor'].mean())
+    with col_esq:
+        fig_plano = px.pie(df_f, names='plano', values='valor', title="Vendas por Plano")
+        st.plotly_chart(fig_plano, use_container_width=True)
         
-        fig_linha = px.line(
-            df_diario,
-            x='Data',
-            y='Vendas_Liquidas',
-            title='Evolução de Vendas Líquidas por Dia',
-            labels={'Vendas_Liquidas': 'Vendas Líquidas (R$)', 'Data': 'Data'}
-        )
-        st.plotly_chart(fig_linha, use_container_width=True)
-    
-    # Gráfico 2: Ranking de Vendedores por Vendas Líquidas
-    with col2:
-        df_vendedor = df_filtrado.groupby('Vendedor').agg({
-            'Valor': 'sum',
-            'Status': lambda x: (x == 'Cancelada').sum()
-        }).reset_index()
-        df_vendedor.columns = ['Vendedor', 'Vendas_Brutas', 'Cancelamentos']
-        df_vendedor['Vendas_Liquidas'] = df_vendedor['Vendas_Brutas'] - (df_vendedor['Cancelamentos'] * df_filtrado['Valor'].mean())
-        df_vendedor = df_vendedor.sort_values('Vendas_Liquidas', ascending=True)
-        
-        fig_barras = px.barh(
-            df_vendedor,
-            x='Vendas_Liquidas',
-            y='Vendedor',
-            title='Ranking de Vendedores por Vendas Líquidas',
-            labels={'Vendas_Liquidas': 'Vendas Líquidas (R$)', 'Vendedor': 'Vendedor'}
-        )
-        st.plotly_chart(fig_barras, use_container_width=True)
-    
-    # Gráfico 3: Distribuição de Vendas por Plano
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        df_plano = df_filtrado.groupby('Plano')['Valor'].sum().reset_index()
-        fig_pizza = px.pie(
-            df_plano,
-            values='Valor',
-            names='Plano',
-            title='Distribuição de Vendas por Plano'
-        )
-        st.plotly_chart(fig_pizza, use_container_width=True)
-    
-    # Gráfico 4: Status das Vendas
-    with col2:
-        df_status = df_filtrado['Status'].value_counts().reset_index()
-        df_status.columns = ['Status', 'Quantidade']
-        fig_status = px.bar(
-            df_status,
-            x='Status',
-            y='Quantidade',
-            title='Quantidade de Vendas por Status',
-            labels={'Quantidade': 'Quantidade', 'Status': 'Status'}
-        )
+    with col_dir:
+        fig_status = px.bar(df_f['status'].value_counts().reset_index(), x='status', y='count', title="Status das Vendas", color='status')
         st.plotly_chart(fig_status, use_container_width=True)
-    
-    st.divider()
-    
-    # ===== TABELA DETALHADA =====
-    st.subheader("📋 Tabela Detalhada de Vendas")
-    
-    # Selecionar colunas para exibição
-    colunas_exibicao = ['Vendedor', 'Cliente', 'CNPJ do Cliente', 'Plano', 'Valor', 'Data de Ativação', 'Status']
-    colunas_disponiveis = [col for col in colunas_exibicao if col in df_filtrado.columns]
-    
-    # Exibir tabela com formatação
-    df_tabela = df_filtrado[colunas_disponiveis].copy()
-    df_tabela['Valor'] = df_tabela['Valor'].apply(lambda x: f"R$ {x:,.2f}")
-    df_tabela = df_tabela.sort_values('Data de Ativação', ascending=False)
-    
-    st.dataframe(df_tabela, use_container_width=True)
-    
+
+    # Tabela
+    st.subheader("📋 Detalhamento")
+    st.dataframe(df_f[['vendedor', 'cliente', 'plano', 'valor', 'data de ativação', 'status']], use_container_width=True)
+
 else:
-    st.error("Erro ao carregar os dados. Verifique os IDs das planilhas.")
+    st.error("Não foi possível carregar os dados. Verifique se as planilhas estão públicas.")
