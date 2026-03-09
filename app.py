@@ -3,37 +3,12 @@ import streamlit as st
 import plotly.express as px
 from datetime import datetime
 
-# Configuração da página - Estilo Sênior de Alta Densidade
+# Configuração da página - Estilo Sênior Limpo
 st.set_page_config(
     layout="wide", 
     page_title="Dashboard Comercial Estratégico",
     page_icon="📊"
 )
-
-# CSS Customizado para reduzir fontes e otimizar espaço
-st.markdown("""
-    <style>
-    .main {
-        padding-top: 0rem;
-    }
-    .stMetric {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 5px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-    div[data-testid="stMetricValue"] {
-        font-size: 1.6rem !important;
-    }
-    div[data-testid="stMetricLabel"] {
-        font-size: 0.9rem !important;
-        font-weight: bold;
-    }
-    h1 { font-size: 2rem !important; }
-    h2 { font-size: 1.5rem !important; }
-    h3 { font-size: 1.2rem !important; }
-    </style>
-    """, unsafe_allow_html=True)
 
 # IDs e GIDs das planilhas Google Sheets
 VENDAS_ID = "1df7wNT1XQaiVK38vNdjbQudXkeH-lHTZWoYQ9gikZ0M"
@@ -176,7 +151,6 @@ if df is not None and not df.empty:
     total_cancelamentos_hist = len(df[df['status'] == 'Cancelada'])
     base_ativa_total = total_ativacoes_hist - total_cancelamentos_hist
     
-    # Percentual de Churn para o Card
     perc_churn = (mrr_cancelado / mrr_conquistado * 100) if mrr_conquistado > 0 else 0
 
     # --- EXIBIÇÃO DE CARDS ---
@@ -200,7 +174,6 @@ if df is not None and not df.empty:
     col_esq, col_dir = st.columns(2)
     
     with col_esq:
-        # Evolução MRR Conquistado com Volume de Contratos
         df_evol = df_ano[df_ano['status'] == 'Confirmada'].groupby(['mes_num', 'mes_nome']).agg(
             mrr=('mrr', 'sum'),
             contratos=('cliente', 'count')
@@ -210,28 +183,25 @@ if df is not None and not df.empty:
                          title=f"Evolução Mensal de MRR Conquistado - {ano_sel}",
                          labels={'mes_nome': 'Mês', 'mrr': 'MRR (R$)', 'contratos': 'Contratos'},
                          color_discrete_sequence=['#2ECC71'])
-        fig_evol.update_traces(texttemplate='%{text} Contratos', textposition='inside')
+        fig_evol.update_traces(texttemplate='%{text}', textposition='inside')
         st.plotly_chart(fig_evol, use_container_width=True)
         
     with col_dir:
-        # Evolução MRR Perdido com Volume de Contratos
         df_churn_evol = df_ano[df_ano['status'] == 'Cancelada'].groupby(['mes_num', 'mes_nome']).agg(
             mrr=('mrr', 'sum'),
             contratos=('cliente', 'count')
         ).reset_index().sort_values('mes_num')
         
-        # Garantir meses vazios
-        df_meses = pd.DataFrame({'mes_num': range(1, 13), 'mes_nome': meses_ordem})
-        df_churn_evol = df_meses.merge(df_churn_evol, on=['mes_num', 'mes_nome'], how='left').fillna(0)
+        # Filtro para exibir apenas meses com informação (churn > 0)
+        df_churn_evol = df_churn_evol[df_churn_evol['mrr'] > 0]
         
         fig_churn = px.bar(df_churn_evol, x='mes_nome', y='mrr', text='contratos',
                           title=f"Evolução Mensal de MRR Perdido (Churn) - {ano_sel}",
                           labels={'mes_nome': 'Mês', 'mrr': 'MRR Perdido (R$)', 'contratos': 'Contratos'},
                           color_discrete_sequence=['#E74C3C'])
-        fig_churn.update_traces(texttemplate='%{text} Contratos', textposition='inside')
+        fig_churn.update_traces(texttemplate='%{text}', textposition='inside')
         st.plotly_chart(fig_churn, use_container_width=True)
 
-    # Gráfico de Pizza Restaurado
     st.divider()
     col_pizza, col_vazio = st.columns([1, 1])
     with col_pizza:
@@ -240,7 +210,6 @@ if df is not None and not df.empty:
                           color_discrete_sequence=px.colors.qualitative.Pastel)
         st.plotly_chart(fig_produto, use_container_width=True)
 
-    # Tabela de Detalhamento
     st.subheader("📋 Detalhamento das Operações")
     cols_view = ['data', 'cliente', 'vendedor', 'sdr', 'produto', 'status', 'mrr', 'adesao']
     st.dataframe(df_f[cols_view].sort_values('data', ascending=False), use_container_width=True)
