@@ -40,16 +40,34 @@ def encontrar_coluna(df, termos):
     return None
 
 def parse_currency(series):
-    """Conversão robusta de Moeda BRL para Float"""
+    """Conversão de Moeda BRL para Float com precisão absoluta"""
     if series is None: return 0.0
-    return pd.to_numeric(
-        series.astype(str)
-        .str.replace(r'[R$]', '', regex=True)
-        .str.replace('.', '', regex=False)
-        .str.replace(',', '.', regex=False)
-        .str.strip(),
-        errors='coerce'
-    ).fillna(0.0)
+    
+    def clean_val(val):
+        if pd.isna(val): return 0.0
+        if isinstance(val, (int, float)): return float(val)
+        
+        s = str(val).replace('R$', '').strip()
+        if not s: return 0.0
+        
+        # Lógica para formato brasileiro: 1.234,56 -> 1234.56
+        # Se houver vírgula, assume que é o decimal
+        if ',' in s:
+            s = s.replace('.', '').replace(',', '.')
+        # Se não houver vírgula mas houver ponto, precisamos checar se é milhar ou decimal
+        # Em planilhas brasileiras, se houver apenas um ponto e 2 casas depois, pode ser decimal.
+        # Mas o padrão exportado costuma ser milhar. Vamos tratar como milhar se houver 3 casas após.
+        elif '.' in s:
+            parts = s.split('.')
+            if len(parts[-1]) != 2: # Se não forem 2 casas decimais, assume que o ponto era milhar
+                s = s.replace('.', '')
+        
+        try:
+            return float(s)
+        except:
+            return 0.0
+
+    return series.apply(clean_val)
 
 def processar_dados():
     df_vendas = load_data(VENDAS_ID, gid=VENDAS_GID)
@@ -58,7 +76,7 @@ def processar_dados():
     if df_vendas.empty:
         return None
 
-    # Mapeamento de Colunas - Foco na Data de Ativação (Coluna H) e Produto (Coluna M)
+    # Mapeamento de Colunas
     map_cols = {
         'vendedor': encontrar_coluna(df_vendas, 'vendedor'),
         'sdr': encontrar_coluna(df_vendas, 'sdr'),
@@ -73,21 +91,20 @@ def processar_dados():
         'downgrade': encontrar_coluna(df_vendas, 'Redução da mensalidade')
     }
 
-    # Construção do DataFrame de Análise
+    # Construção do DataFrame
     df = pd.DataFrame()
     df['vendedor'] = df_vendas[map_cols['vendedor']] if map_cols['vendedor'] else "N/A"
     df['sdr'] = df_vendas[map_cols['sdr']] if map_cols['sdr'] else "N/A"
     df['cliente'] = df_vendas[map_cols['cliente']] if map_cols['cliente'] else "N/A"
     
-    # Lógica de Produto (Coluna M + Fallback para Sittax Simples)
+    # Lógica de Produto (Coluna M)
     if map_cols['produto']:
         df['produto'] = df_vendas[map_cols['produto']].fillna("Sittax Simples")
-        # Caso o campo esteja vazio (string vazia), também assume Sittax Simples
         df.loc[df['produto'].astype(str).str.strip() == "", 'produto'] = "Sittax Simples"
     else:
         df['produto'] = "Sittax Simples"
     
-    # Engenharia de Datas baseada na Data de Ativação (Coluna H)
+    # Datas (Coluna H)
     if map_cols['data_ativacao']:
         df['data'] = pd.to_datetime(df_vendas[map_cols['data_ativacao']], errors='coerce', dayfirst=True)
         df['ano'] = df['data'].dt.year.fillna(0).astype(int)
@@ -100,14 +117,14 @@ def processar_dados():
         df['ano'] = 0
         df['mes_nome'] = "Sem Data"
 
-    # Processamento Financeiro
+    # Financeiro com novo parse_currency
     df['mrr'] = parse_currency(df_vendas[map_cols['mrr']]) if map_cols['mrr'] else 0.0
     df['adesao'] = parse_currency(df_vendas[map_cols['adesao_s']]) + parse_currency(df_vendas[map_cols['adesao_r']])
     df['upgrade'] = parse_currency(df_vendas[map_cols['upgrade']]) if map_cols['upgrade'] else 0.0
     df['downgrade'] = parse_currency(df_vendas[map_cols['downgrade']]) if map_cols['downgrade'] else 0.0
     df['receita_total'] = df['mrr'] + df['adesao']
 
-    # Cruzamento de Cancelados (Churn)
+    # Cancelados
     df['status'] = 'Confirmada'
     if map_cols['cnpj'] and not df_cancelados.empty:
         vendas_cnpj = df_vendas[map_cols['cnpj']].astype(str).str.replace(r'\D', '', regex=True)
@@ -116,44 +133,37 @@ def processar_dados():
             canc_cnpjs = df_cancelados[col_cnpj_canc].astype(str).str.replace(r'\D', '', regex=True).unique()
             df.loc[vendas_cnpj.isin(canc_cnpjs), 'status'] = 'Cancelada'
     
-    # Auditoria de Dados: Remover linhas sem cliente ou vendedor
+    # Auditoria: Remover linhas sem cliente ou vendedor
     df = df[~((df['cliente'] == "N/A") | (df['vendedor'] == "N/A") | (df['cliente'].isna()))]
     
     return df
 
-# --- UI DASHBOARD ---
+# --- UI ---
 df = processar_dados()
 
 if df is not None and not df.empty:
     st.title("📊 Dashboard Comercial Estratégico")
     
-    # Sidebar - Filtros Avançados
     st.sidebar.header("🔍 Filtros de Análise")
     
-    # 1. Filtro de Ano
     anos_lista = sorted([a for a in df['ano'].unique() if a != 0], reverse=True)
     ano_sel = st.sidebar.selectbox("Selecione o Ano", anos_lista)
     
-    # 2. Filtro de Meses (Multisseleção)
     df_ano = df[df['ano'] == ano_sel]
     meses_ordem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     meses_disponiveis = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
     meses_sel = st.sidebar.multiselect("Selecione os Meses", meses_disponiveis, default=meses_disponiveis)
     
-    # 3. Filtro de Produto
     produtos = ["Todos"] + sorted(df['produto'].unique().tolist())
     produto_sel = st.sidebar.selectbox("Produto", produtos)
     
-    # 4. Filtro de Vendedor
     vendedores = ["Todos"] + sorted(df['vendedor'].unique().tolist())
     vendedor_sel = st.sidebar.selectbox("Vendedor", vendedores)
     
-    # 5. Filtro de SDR
     sdrs = ["Todos"] + sorted(df['sdr'].unique().tolist())
     sdr_sel = st.sidebar.selectbox("SDR", sdrs)
     
-    # Aplicação de Filtros em Cascata
     df_f = df[df['ano'] == ano_sel].copy()
     if meses_sel:
         df_f = df_f[df_f['mes_nome'].isin(meses_sel)]
@@ -164,7 +174,6 @@ if df is not None and not df.empty:
     if sdr_sel != "Todos":
         df_f = df_f[df_f['sdr'] == sdr_sel]
     
-    # KPIs Estratégicos
     c1, c2, c3, c4 = st.columns(4)
     
     mrr_total = df_f['mrr'].sum()
@@ -179,15 +188,12 @@ if df is not None and not df.empty:
 
     st.divider()
     
-    # Visualizações
     col_esq, col_dir = st.columns(2)
-    
     with col_esq:
         fig_produto = px.pie(df_f, names='produto', values='receita_total', 
                           title="Receita Total por Produto", hole=0.4,
                           color_discrete_sequence=px.colors.qualitative.Pastel)
         st.plotly_chart(fig_produto, use_container_width=True)
-        
     with col_dir:
         status_counts = df_f['status'].value_counts().reset_index()
         status_counts.columns = ['status', 'quantidade']
@@ -197,7 +203,6 @@ if df is not None and not df.empty:
                            color_discrete_map={'Confirmada': '#2ECC71', 'Cancelada': '#E74C3C'})
         st.plotly_chart(fig_status, use_container_width=True)
 
-    # Tabela de Detalhamento
     st.subheader("📋 Detalhamento das Operações")
     cols_view = ['data', 'cliente', 'vendedor', 'sdr', 'produto', 'status', 'mrr', 'adesao']
     st.dataframe(df_f[cols_view].sort_values('data', ascending=False), use_container_width=True)
