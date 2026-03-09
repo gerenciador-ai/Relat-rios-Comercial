@@ -88,6 +88,8 @@ def processar_dados():
         meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
                     7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
         df['mes_nome'] = df['mes_num'].map(meses_pt).fillna("Sem Data")
+        # Lógica de Início da Semana (Segunda-feira)
+        df['inicio_semana'] = df['data'].apply(lambda x: x - pd.Timedelta(days=x.weekday()) if pd.notnull(x) else pd.NaT)
     else:
         df['data'] = pd.NaT
         df['ano'] = 0
@@ -186,12 +188,10 @@ if df is not None and not df.empty:
         st.plotly_chart(fig_evol, use_container_width=True)
         
     with col_dir:
-        # NOVO: Churn Mensal Histórico (Ignora filtro de período, mas respeita Ano)
         df_churn_hist = df_ano[df_ano['status'] == 'Cancelada'].groupby(['mes_num', 'mes_nome']).agg(
             mrr=('mrr', 'sum'), contratos=('cliente', 'count')
         ).reset_index().sort_values('mes_num')
         df_churn_hist = df_churn_hist[df_churn_hist['mrr'] > 0]
-        
         fig_churn_hist = px.bar(df_churn_hist, x='mes_nome', y='mrr', text='contratos',
                           title=f"Churn Mensal Histórico - {ano_sel}",
                           labels={'mes_nome': 'Mês', 'mrr': 'MRR Perdido (R$)'}, color_discrete_sequence=['#E74C3C'])
@@ -204,15 +204,11 @@ if df is not None and not df.empty:
     st.subheader("🎯 Performance vs. Metas Acumuladas")
     col_meta_mrr, col_meta_cont = st.columns(2)
 
-    # Preparação de dados acumulados (respeitando o filtro de meses selecionados)
     df_meta = df_f[df_f['status'] == 'Confirmada'].groupby(['mes_num', 'mes_nome']).agg(
         mrr=('mrr', 'sum'), contratos=('cliente', 'count')
     ).reset_index().sort_values('mes_num')
-    
     df_meta['mrr_acum'] = df_meta['mrr'].cumsum()
     df_meta['cont_acum'] = df_meta['contratos'].cumsum()
-    
-    # Gerar linhas de meta (8k MRR e 17 Contratos por mês)
     df_meta['meta_mrr_acum'] = [8000 * (i+1) for i in range(len(df_meta))]
     df_meta['meta_cont_acum'] = [17 * (i+1) for i in range(len(df_meta))]
 
@@ -231,9 +227,35 @@ if df is not None and not df.empty:
         st.plotly_chart(fig_meta_cont, use_container_width=True)
 
     st.divider()
-    
-    # --- VISUALIZAÇÕES: PRODUTO ---
-    col_pizza, col_vazio = st.columns([1, 1])
+
+    # --- VISUALIZAÇÕES: ANÁLISE TEMPORAL DETALHADA ---
+    st.subheader("📅 Análise Temporal Detalhada")
+    col_semana, col_pizza = st.columns(2)
+
+    with col_semana:
+        # NOVO: MRR SEMANA (Gráfico de Linha com Marcadores)
+        df_semana = df_f[df_f['status'] == 'Confirmada'].groupby('inicio_semana')['mrr'].sum().reset_index().sort_values('inicio_semana')
+        df_semana['data_str'] = df_semana['inicio_semana'].dt.strftime('%d/%m/%Y')
+        
+        fig_semana = go.Figure()
+        fig_semana.add_trace(go.Scatter(
+            x=df_semana['data_str'], 
+            y=df_semana['mrr'],
+            mode='lines+markers+text',
+            name='MRR Semana',
+            text=df_semana['mrr'].apply(lambda x: f"{x:,.0f}"),
+            textposition="top center",
+            line=dict(color='#1A3A5A', width=4),
+            marker=dict(size=10, color='#1A3A5A')
+        ))
+        fig_semana.update_layout(
+            title="MRR SEMANA",
+            xaxis_title="Início da Semana",
+            yaxis_title="MRR (R$)",
+            showlegend=False
+        )
+        st.plotly_chart(fig_semana, use_container_width=True)
+
     with col_pizza:
         fig_produto = px.pie(df_f, names='produto', values='receita_total', 
                           title="Distribuição de Receita por Produto", hole=0.4,
