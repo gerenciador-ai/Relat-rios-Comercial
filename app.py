@@ -142,21 +142,26 @@ if df is not None and not df.empty:
     
     st.sidebar.header("🔍 Filtros de Análise")
     
+    # 1. Filtro de Ano
     anos_lista = sorted([a for a in df['ano'].unique() if a != 0], reverse=True)
     ano_sel = st.sidebar.selectbox("Selecione o Ano", anos_lista)
     
+    # 2. Filtro de Meses (Multisseleção - ORDEM CRONOLÓGICA)
     df_ano = df[df['ano'] == ano_sel]
     meses_ordem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     meses_disponiveis = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
     meses_sel = st.sidebar.multiselect("Selecione os Meses", meses_disponiveis, default=meses_disponiveis)
     
+    # 3. Filtro de Produto (ORDEM ALFABÉTICA)
     produtos = ["Todos"] + sorted(df['produto'].unique().tolist())
     produto_sel = st.sidebar.selectbox("Produto", produtos)
     
+    # 4. Filtro de Vendedor (ORDEM ALFABÉTICA)
     vendedores = ["Todos"] + sorted(df['vendedor'].unique().tolist())
     vendedor_sel = st.sidebar.selectbox("Vendedor", vendedores)
     
+    # 5. Filtro de SDR (ORDEM ALFABÉTICA)
     sdrs = ["Todos"] + sorted(df['sdr'].unique().tolist())
     sdr_sel = st.sidebar.selectbox("SDR", sdrs)
     
@@ -172,24 +177,20 @@ if df is not None and not df.empty:
         df_f = df_f[df_f['sdr'] == sdr_sel]
     
     # --- CÁLCULOS DE KPIs ---
-    # 1. MRR Ativo (MRR Conquistado - MRR Cancelado no período)
     mrr_conquistado = df_f[df_f['status'] == 'Confirmada']['mrr'].sum()
     mrr_cancelado = df_f[df_f['status'] == 'Cancelada']['mrr'].sum()
     mrr_ativo = mrr_conquistado - mrr_cancelado
     
-    # 2. Clientes Fechados e Cancelados
     clientes_fechados = len(df_f[df_f['status'] == 'Confirmada'])
     clientes_cancelados = len(df_f[df_f['status'] == 'Cancelada'])
     
-    # 3. Ticket Médio (MRR Conquistado / Clientes Ativados)
     ticket_medio = mrr_conquistado / clientes_fechados if clientes_fechados > 0 else 0
     
-    # 4. Total de Clientes Ativos (Base Histórica - Independente de Filtro)
     total_ativacoes_hist = len(df[df['status'] == 'Confirmada'])
     total_cancelamentos_hist = len(df[df['status'] == 'Cancelada'])
     base_ativa_total = total_ativacoes_hist - total_cancelamentos_hist
 
-    # --- EXIBIÇÃO DE CARDS ---
+    # --- EXIBIÇÃO DE CARDS (NOMENCLATURA AJUSTADA) ---
     c1, c2, c3 = st.columns(3)
     c1.metric("MRR Ativo (Net New)", f"R$ {mrr_ativo:,.2f}")
     c2.metric("Ticket Médio", f"R$ {ticket_medio:,.2f}")
@@ -198,9 +199,9 @@ if df is not None and not df.empty:
     st.write("") # Espaçamento
     
     c4, c5, c6 = st.columns(3)
-    c4.metric("Clientes Fechados", clientes_fechados)
-    c5.metric("Clientes Cancelados", clientes_cancelados)
-    c6.metric("Adesão Total", f"R$ {df_f['adesao'].sum():,.2f}")
+    c4.metric("Clientes fechado (no periodo)", clientes_fechados)
+    c5.metric("Clientes Cancelados (no periodo)", clientes_cancelados)
+    c6.metric("Adesão total (no periodo)", f"R$ {df_f['adesao'].sum():,.2f}")
 
     st.divider()
     
@@ -208,7 +209,6 @@ if df is not None and not df.empty:
     col_esq, col_dir = st.columns(2)
     
     with col_esq:
-        # Gráfico de Evolução Mensal de MRR (Sugestão Sênior)
         df_evolucao = df_ano.groupby(['mes_num', 'mes_nome'])['mrr'].sum().reset_index()
         df_evolucao = df_evolucao.sort_values('mes_num')
         fig_evolucao = px.bar(df_evolucao, x='mes_nome', y='mrr', 
@@ -218,7 +218,6 @@ if df is not None and not df.empty:
         st.plotly_chart(fig_evolucao, use_container_width=True)
         
     with col_dir:
-        # Receita por Produto
         fig_produto = px.pie(df_f, names='produto', values='receita_total', 
                           title="Distribuição de Receita por Produto", hole=0.4,
                           color_discrete_sequence=px.colors.qualitative.Pastel)
