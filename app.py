@@ -1,9 +1,10 @@
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime
 
-# Configuração da página - Estilo Sênior Limpo
+# Configuração da página - Estilo Sênior de Alta Densidade
 st.set_page_config(
     layout="wide", 
     page_title="Dashboard Comercial Estratégico",
@@ -134,6 +135,7 @@ if df is not None and not df.empty:
     sdrs = ["Todos"] + sorted(df['sdr'].unique().tolist())
     sdr_sel = st.sidebar.selectbox("SDR", sdrs)
     
+    # Aplicação de Filtros
     df_f = df[df['ano'] == ano_sel].copy()
     if meses_sel: df_f = df_f[df_f['mes_nome'].isin(meses_sel)]
     if produto_sel != "Todos": df_f = df_f[df_f['produto'] == produto_sel]
@@ -150,7 +152,6 @@ if df is not None and not df.empty:
     total_ativacoes_hist = len(df[df['status'] == 'Confirmada'])
     total_cancelamentos_hist = len(df[df['status'] == 'Cancelada'])
     base_ativa_total = total_ativacoes_hist - total_cancelamentos_hist
-    
     perc_churn = (mrr_cancelado / mrr_conquistado * 100) if mrr_conquistado > 0 else 0
 
     # --- EXIBIÇÃO DE CARDS ---
@@ -170,39 +171,68 @@ if df is not None and not df.empty:
 
     st.divider()
     
-    # --- VISUALIZAÇÕES ---
+    # --- VISUALIZAÇÕES: EVOLUÇÃO MENSAL ---
+    st.subheader("📈 Evolução Mensal")
     col_esq, col_dir = st.columns(2)
     
     with col_esq:
         df_evol = df_ano[df_ano['status'] == 'Confirmada'].groupby(['mes_num', 'mes_nome']).agg(
-            mrr=('mrr', 'sum'),
-            contratos=('cliente', 'count')
+            mrr=('mrr', 'sum'), contratos=('cliente', 'count')
         ).reset_index().sort_values('mes_num')
-        
         fig_evol = px.bar(df_evol, x='mes_nome', y='mrr', text='contratos',
-                         title=f"Evolução Mensal de MRR Conquistado - {ano_sel}",
-                         labels={'mes_nome': 'Mês', 'mrr': 'MRR (R$)', 'contratos': 'Contratos'},
-                         color_discrete_sequence=['#2ECC71'])
+                         title=f"MRR Conquistado por Mês - {ano_sel}",
+                         labels={'mes_nome': 'Mês', 'mrr': 'MRR (R$)'}, color_discrete_sequence=['#2ECC71'])
         fig_evol.update_traces(texttemplate='%{text}', textposition='inside')
         st.plotly_chart(fig_evol, use_container_width=True)
         
     with col_dir:
-        df_churn_evol = df_ano[df_ano['status'] == 'Cancelada'].groupby(['mes_num', 'mes_nome']).agg(
-            mrr=('mrr', 'sum'),
-            contratos=('cliente', 'count')
+        # NOVO: Churn Mensal Histórico (Ignora filtro de período, mas respeita Ano)
+        df_churn_hist = df_ano[df_ano['status'] == 'Cancelada'].groupby(['mes_num', 'mes_nome']).agg(
+            mrr=('mrr', 'sum'), contratos=('cliente', 'count')
         ).reset_index().sort_values('mes_num')
+        df_churn_hist = df_churn_hist[df_churn_hist['mrr'] > 0]
         
-        # Filtro para exibir apenas meses com informação (churn > 0)
-        df_churn_evol = df_churn_evol[df_churn_evol['mrr'] > 0]
-        
-        fig_churn = px.bar(df_churn_evol, x='mes_nome', y='mrr', text='contratos',
-                          title=f"Evolução Mensal de MRR Perdido (Churn) - {ano_sel}",
-                          labels={'mes_nome': 'Mês', 'mrr': 'MRR Perdido (R$)', 'contratos': 'Contratos'},
-                          color_discrete_sequence=['#E74C3C'])
-        fig_churn.update_traces(texttemplate='%{text}', textposition='inside')
-        st.plotly_chart(fig_churn, use_container_width=True)
+        fig_churn_hist = px.bar(df_churn_hist, x='mes_nome', y='mrr', text='contratos',
+                          title=f"Churn Mensal Histórico - {ano_sel}",
+                          labels={'mes_nome': 'Mês', 'mrr': 'MRR Perdido (R$)'}, color_discrete_sequence=['#E74C3C'])
+        fig_churn_hist.update_traces(texttemplate='%{text}', textposition='inside')
+        st.plotly_chart(fig_churn_hist, use_container_width=True)
 
     st.divider()
+
+    # --- VISUALIZAÇÕES: METAS ACUMULADAS ---
+    st.subheader("🎯 Performance vs. Metas Acumuladas")
+    col_meta_mrr, col_meta_cont = st.columns(2)
+
+    # Preparação de dados acumulados (respeitando o filtro de meses selecionados)
+    df_meta = df_f[df_f['status'] == 'Confirmada'].groupby(['mes_num', 'mes_nome']).agg(
+        mrr=('mrr', 'sum'), contratos=('cliente', 'count')
+    ).reset_index().sort_values('mes_num')
+    
+    df_meta['mrr_acum'] = df_meta['mrr'].cumsum()
+    df_meta['cont_acum'] = df_meta['contratos'].cumsum()
+    
+    # Gerar linhas de meta (8k MRR e 17 Contratos por mês)
+    df_meta['meta_mrr_acum'] = [8000 * (i+1) for i in range(len(df_meta))]
+    df_meta['meta_cont_acum'] = [17 * (i+1) for i in range(len(df_meta))]
+
+    with col_meta_mrr:
+        fig_meta_mrr = go.Figure()
+        fig_meta_mrr.add_trace(go.Bar(x=df_meta['mes_nome'], y=df_meta['mrr_acum'], name='MRR Real Acumulado', marker_color='#2ECC71'))
+        fig_meta_mrr.add_trace(go.Scatter(x=df_meta['mes_nome'], y=df_meta['meta_mrr_acum'], name='Meta Acumulada (R$ 8k/mês)', line=dict(color='#F1C40F', width=4)))
+        fig_meta_mrr.update_layout(title=f"MRR Acumulado vs. Meta - {ano_sel}", xaxis_title="Mês", yaxis_title="Valor (R$)")
+        st.plotly_chart(fig_meta_mrr, use_container_width=True)
+
+    with col_meta_cont:
+        fig_meta_cont = go.Figure()
+        fig_meta_cont.add_trace(go.Bar(x=df_meta['mes_nome'], y=df_meta['cont_acum'], name='Contratos Real Acumulado', marker_color='#3498DB'))
+        fig_meta_cont.add_trace(go.Scatter(x=df_meta['mes_nome'], y=df_meta['meta_cont_acum'], name='Meta Acumulada (17/mês)', line=dict(color='#F39C12', width=4)))
+        fig_meta_cont.update_layout(title=f"Contratos Acumulados vs. Meta - {ano_sel}", xaxis_title="Mês", yaxis_title="Quantidade")
+        st.plotly_chart(fig_meta_cont, use_container_width=True)
+
+    st.divider()
+    
+    # --- VISUALIZAÇÕES: PRODUTO ---
     col_pizza, col_vazio = st.columns([1, 1])
     with col_pizza:
         fig_produto = px.pie(df_f, names='produto', values='receita_total', 
@@ -210,6 +240,7 @@ if df is not None and not df.empty:
                           color_discrete_sequence=px.colors.qualitative.Pastel)
         st.plotly_chart(fig_produto, use_container_width=True)
 
+    # Tabela de Detalhamento
     st.subheader("📋 Detalhamento das Operações")
     cols_view = ['data', 'cliente', 'vendedor', 'sdr', 'produto', 'status', 'mrr', 'adesao']
     st.dataframe(df_f[cols_view].sort_values('data', ascending=False), use_container_width=True)
