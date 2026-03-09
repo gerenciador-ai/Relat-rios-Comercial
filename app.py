@@ -83,11 +83,16 @@ def processar_dados():
     # Engenharia de Datas baseada na Data de Ativação (Coluna H)
     if map_cols['data_ativacao']:
         df['data'] = pd.to_datetime(df_vendas[map_cols['data_ativacao']], errors='coerce', dayfirst=True)
-        df['mes_ano'] = df['data'].dt.strftime('%Y-%m').fillna("Sem Data")
-        df['semana'] = df['data'].dt.isocalendar().week.fillna(0)
+        df['ano'] = df['data'].dt.year.fillna(0).astype(int)
+        df['mes_num'] = df['data'].dt.month.fillna(0).astype(int)
+        # Nomes dos meses em português
+        meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+                    7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
+        df['mes_nome'] = df['mes_num'].map(meses_pt).fillna("Sem Data")
     else:
         df['data'] = pd.NaT
-        df['mes_ano'] = "Sem Data"
+        df['ano'] = 0
+        df['mes_nome'] = "Sem Data"
 
     # Processamento Financeiro
     df['mrr'] = parse_currency(df_vendas[map_cols['mrr']]) if map_cols['mrr'] else 0.0
@@ -105,8 +110,9 @@ def processar_dados():
             canc_cnpjs = df_cancelados[col_cnpj_canc].astype(str).str.replace(r'\D', '', regex=True).unique()
             df.loc[vendas_cnpj.isin(canc_cnpjs), 'status'] = 'Cancelada'
     
-    # Remover apenas linhas que são totalmente "N/A" (vazias na planilha)
-    df = df[~((df['cliente'] == "N/A") & (df['vendedor'] == "N/A") & (df['mrr'] == 0))]
+    # AUDITORIA DE DADOS: Remover linhas que não são vendas reais (sem cliente ou sem vendedor)
+    # Isso garante que o cálculo de ADESÃO TOTAL não seja inflado por lixo na planilha
+    df = df[~((df['cliente'] == "N/A") | (df['vendedor'] == "N/A") | (df['cliente'].isna()))]
     
     return df
 
@@ -119,23 +125,30 @@ if df is not None and not df.empty:
     # Sidebar - Filtros Avançados
     st.sidebar.header("🔍 Filtros de Análise")
     
-    # Filtro de Mês/Ano
-    meses_lista = sorted([m for m in df['mes_ano'].unique() if m != "Sem Data"], reverse=True)
-    meses = ["Todos"] + meses_lista + (["Sem Data"] if "Sem Data" in df['mes_ano'].unique() else [])
-    mes_sel = st.sidebar.selectbox("Período (Mês/Ano)", meses)
+    # 1. Filtro de Ano
+    anos_lista = sorted([a for a in df['ano'].unique() if a != 0], reverse=True)
+    ano_sel = st.sidebar.selectbox("Selecione o Ano", anos_lista)
     
-    # Filtro de Vendedor
+    # 2. Filtro de Meses (Multisseleção)
+    df_ano = df[df['ano'] == ano_sel]
+    meses_ordem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    meses_disponiveis = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
+    
+    meses_sel = st.sidebar.multiselect("Selecione os Meses", meses_disponiveis, default=meses_disponiveis)
+    
+    # 3. Filtro de Vendedor
     vendedores = ["Todos"] + sorted(df['vendedor'].unique().tolist())
     vendedor_sel = st.sidebar.selectbox("Vendedor", vendedores)
     
-    # Filtro de SDR
+    # 4. Filtro de SDR
     sdrs = ["Todos"] + sorted(df['sdr'].unique().tolist())
     sdr_sel = st.sidebar.selectbox("SDR", sdrs)
     
     # Aplicação de Filtros em Cascata
-    df_f = df.copy()
-    if mes_sel != "Todos":
-        df_f = df_f[df_f['mes_ano'] == mes_sel]
+    df_f = df[df['ano'] == ano_sel].copy()
+    if meses_sel:
+        df_f = df_f[df_f['mes_nome'].isin(meses_sel)]
     if vendedor_sel != "Todos":
         df_f = df_f[df_f['vendedor'] == vendedor_sel]
     if sdr_sel != "Todos":
@@ -180,4 +193,4 @@ if df is not None and not df.empty:
     st.dataframe(df_f[cols_view].sort_values('data', ascending=False), use_container_width=True)
 
 else:
-    st.error("Nenhum dado encontrado. Verifique a conexão com as planilhas.")
+    st.error("Nenhum dado válido encontrado para os filtros selecionados.")
