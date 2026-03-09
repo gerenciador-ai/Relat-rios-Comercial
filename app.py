@@ -10,17 +10,24 @@ st.set_page_config(layout="wide", page_title="Dashboard de Vendas e Cancelamento
 VENDAS_ID = "1df7wNT1XQaiVK38vNdjbQudXkeH-lHTZWoYQ9gikZ0M"
 CANCELADOS_ID = "1GDU6qVJ9Gf9C9lwHx2KwOiTltyeUPWhD_y3ODUczuTw"
 
-@st.cache_data(ttl=600) # Atualiza o cache a cada 10 minutos
+@st.cache_data(ttl=600)
 def load_data(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     try:
         df = pd.read_csv(url )
-        # Normalizar nomes de colunas: remover espaços e colocar em minúsculo
-        df.columns = df.columns.str.strip().str.lower()
+        # Limpar espaços extras nos nomes das colunas
+        df.columns = df.columns.str.strip()
         return df
     except Exception as e:
         st.error(f"Erro ao carregar planilha {sheet_id}: {e}")
         return pd.DataFrame()
+
+def encontrar_coluna(df, termo):
+    """Encontra uma coluna que contenha o termo pesquisado (ignora maiúsculas/minúsculas)"""
+    for col in df.columns:
+        if termo.lower() in col.lower():
+            return col
+    return None
 
 def processar_dados():
     df_vendas = load_data(VENDAS_ID)
@@ -29,28 +36,38 @@ def processar_dados():
     if df_vendas.empty:
         return None
 
-    # Mapeamento de colunas esperadas (ajustado para o que está nas suas planilhas)
-    # Suas colunas reais: 'vendedor', 'cliente', 'cnpj do cliente', 'plano', 'valor', 'data de ativação'
+    # Identificar colunas dinamicamente
+    col_vendedor = encontrar_coluna(df_vendas, 'vendedor')
+    col_cliente = encontrar_coluna(df_vendas, 'cliente')
+    col_cnpj = encontrar_coluna(df_vendas, 'cnpj')
+    col_plano = encontrar_coluna(df_vendas, 'plano')
+    col_valor = encontrar_coluna(df_vendas, 'valor')
+    col_data = encontrar_coluna(df_vendas, 'data')
+
+    # Criar um novo DataFrame padronizado para o dashboard
+    df_clean = pd.DataFrame()
+    df_clean['vendedor'] = df_vendas[col_vendedor] if col_vendedor else "N/A"
+    df_clean['cliente'] = df_vendas[col_cliente] if col_cliente else "N/A"
+    df_clean['plano'] = df_vendas[col_plano] if col_plano else "N/A"
+    df_clean['valor'] = pd.to_numeric(df_vendas[col_valor].replace(r'[R\$\.\s]', '', regex=True).replace(',', '.', regex=True), errors='coerce').fillna(0) if col_valor else 0
+    df_clean['data'] = pd.to_datetime(df_vendas[col_data], errors='coerce', dayfirst=True) if col_data else None
     
-    # Normalizar CNPJ para comparação
-    col_cnpj = 'cnpj do cliente'
-    if col_cnpj in df_vendas.columns:
+    # Normalizar CNPJ para cruzamento com cancelados
+    if col_cnpj:
         df_vendas['cnpj_norm'] = df_vendas[col_cnpj].astype(str).str.replace(r'\D', '', regex=True)
-    if col_cnpj in df_cancelados.columns:
-        df_cancelados['cnpj_norm'] = df_cancelados[col_cnpj].astype(str).str.replace(r'\D', '', regex=True)
+        
+        # Processar cancelados
+        df_clean['status'] = 'Confirmada'
+        if not df_cancelados.empty:
+            col_cnpj_canc = encontrar_coluna(df_cancelados, 'cnpj')
+            if col_cnpj_canc:
+                df_cancelados['cnpj_norm'] = df_cancelados[col_cnpj_canc].astype(str).str.replace(r'\D', '', regex=True)
+                cancelados_cnpjs = df_cancelados['cnpj_norm'].unique()
+                df_clean.loc[df_vendas['cnpj_norm'].isin(cancelados_cnpjs), 'status'] = 'Cancelada'
+    else:
+        df_clean['status'] = 'Confirmada'
     
-    # Criar coluna de Status
-    df_vendas['status'] = 'Confirmada'
-    if not df_cancelados.empty and 'cnpj_norm' in df_cancelados.columns:
-        cancelados_cnpjs = df_cancelados['cnpj_norm'].unique()
-        df_vendas.loc[df_vendas['cnpj_norm'].isin(cancelados_cnpjs), 'status'] = 'Cancelada'
-    
-    # Converter datas
-    col_data = 'data de ativação'
-    if col_data in df_vendas.columns:
-        df_vendas[col_data] = pd.to_datetime(df_vendas[col_data], errors='coerce', dayfirst=True)
-    
-    return df_vendas
+    return df_clean
 
 # Início do Dashboard
 df = processar_dados()
@@ -60,14 +77,6 @@ if df is not None:
     
     # Sidebar - Filtros
     st.sidebar.header("🔍 Filtros")
-    
-    # Filtro de Data
-    col_data = 'data de ativação'
-    data_min = df[col_data].min()
-    data_max = df[col_data].max()
-    
-    if pd.notnull(data_min) and pd.notnull(data_max):
-        periodo = st.sidebar.date_input("Período", [data_min, data_max])
     
     # Filtro de Vendedor
     vendedores = ["Todos"] + sorted(df['vendedor'].unique().tolist())
@@ -99,12 +108,15 @@ if df is not None:
         st.plotly_chart(fig_plano, use_container_width=True)
         
     with col_dir:
-        fig_status = px.bar(df_f['status'].value_counts().reset_index(), x='status', y='count', title="Status das Vendas", color='status')
+        # Gráfico de Status
+        status_counts = df_f['status'].value_counts().reset_index()
+        status_counts.columns = ['status', 'quantidade']
+        fig_status = px.bar(status_counts, x='status', y='quantidade', title="Status das Vendas", color='status')
         st.plotly_chart(fig_status, use_container_width=True)
 
     # Tabela
     st.subheader("📋 Detalhamento")
-    st.dataframe(df_f[['vendedor', 'cliente', 'plano', 'valor', 'data de ativação', 'status']], use_container_width=True)
+    st.dataframe(df_f, use_container_width=True)
 
 else:
     st.error("Não foi possível carregar os dados. Verifique se as planilhas estão públicas.")
