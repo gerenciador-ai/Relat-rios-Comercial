@@ -25,6 +25,8 @@ def load_data(sheet_id, gid=None):
     try:
         df = pd.read_csv(url )
         df.columns = df.columns.str.strip()
+        # Remover linhas completamente vazias que o Sheets costuma exportar
+        df = df.dropna(how='all')
         return df
     except Exception as e:
         st.error(f"Erro crítico ao carregar dados: {e}")
@@ -41,6 +43,7 @@ def encontrar_coluna(df, termos):
 
 def parse_currency(series):
     """Conversão robusta de Moeda BRL para Float"""
+    if series is None: return 0.0
     return pd.to_numeric(
         series.astype(str)
         .str.replace(r'[R$]', '', regex=True)
@@ -79,27 +82,31 @@ def processar_dados():
     df['cliente'] = df_vendas[map_cols['cliente']] if map_cols['cliente'] else "N/A"
     df['plano'] = df_vendas[map_cols['plano']] if map_cols['plano'] else "N/A"
     
-    # Engenharia de Datas Otimizada
+    # Engenharia de Datas Robusta (Correção do Erro de Atributo)
     if map_cols['data']:
         df['data'] = pd.to_datetime(df_vendas[map_cols['data']], errors='coerce', dayfirst=True)
+        # Filtrar apenas linhas com datas válidas para evitar erros em cálculos temporais
+        df = df.dropna(subset=['data']).copy()
+        
         df['mes_ano'] = df['data'].dt.strftime('%Y-%m')
         df['semana'] = df['data'].dt.isocalendar().week
+        # Abordagem segura para início da semana (Segunda-feira)
         df['inicio_semana'] = df['data'].dt.to_period('W').apply(lambda r: r.start_time)
     else:
-        df['data'] = None
-        df['mes_ano'] = "N/A"
+        return None # Sem data não há dashboard funcional
 
-    # Processamento Financeiro
-    df['mrr'] = parse_currency(df_vendas[map_cols['mrr']]) if map_cols['mrr'] else 0.0
-    df['adesao'] = parse_currency(df_vendas[map_cols['adesao_s']]) + parse_currency(df_vendas[map_cols['adesao_r']])
-    df['upgrade'] = parse_currency(df_vendas[map_cols['upgrade']]) if map_cols['upgrade'] else 0.0
-    df['downgrade'] = parse_currency(df_vendas[map_cols['downgrade']]) if map_cols['downgrade'] else 0.0
+    # Processamento Financeiro (usando o índice do df filtrado por data)
+    idx = df.index
+    df['mrr'] = parse_currency(df_vendas.loc[idx, map_cols['mrr']]) if map_cols['mrr'] else 0.0
+    df['adesao'] = parse_currency(df_vendas.loc[idx, map_cols['adesao_s']]) + parse_currency(df_vendas.loc[idx, map_cols['adesao_r']])
+    df['upgrade'] = parse_currency(df_vendas.loc[idx, map_cols['upgrade']]) if map_cols['upgrade'] else 0.0
+    df['downgrade'] = parse_currency(df_vendas.loc[idx, map_cols['downgrade']]) if map_cols['downgrade'] else 0.0
     df['receita_total'] = df['mrr'] + df['adesao']
 
     # Cruzamento de Cancelados (Churn)
     df['status'] = 'Confirmada'
     if map_cols['cnpj'] and not df_cancelados.empty:
-        vendas_cnpj = df_vendas[map_cols['cnpj']].astype(str).str.replace(r'\D', '', regex=True)
+        vendas_cnpj = df_vendas.loc[idx, map_cols['cnpj']].astype(str).str.replace(r'\D', '', regex=True)
         col_cnpj_canc = encontrar_coluna(df_cancelados, 'cnpj')
         if col_cnpj_canc:
             canc_cnpjs = df_cancelados[col_cnpj_canc].astype(str).str.replace(r'\D', '', regex=True).unique()
@@ -110,7 +117,7 @@ def processar_dados():
 # --- UI DASHBOARD ---
 df = processar_dados()
 
-if df is not None:
+if df is not None and not df.empty:
     st.title("📊 Dashboard Comercial Estratégico")
     
     # Sidebar - Filtros Avançados
@@ -162,7 +169,6 @@ if df is not None:
         st.plotly_chart(fig_plano, use_container_width=True)
         
     with col_dir:
-        # Gráfico de Status com cores semânticas
         status_counts = df_f['status'].value_counts().reset_index()
         status_counts.columns = ['status', 'quantidade']
         fig_status = px.bar(status_counts, x='status', y='quantidade', 
@@ -171,10 +177,10 @@ if df is not None:
                            color_discrete_map={'Confirmada': '#2ECC71', 'Cancelada': '#E74C3C'})
         st.plotly_chart(fig_status, use_container_width=True)
 
-    # Tabela de Detalhamento com colunas selecionadas
+    # Tabela de Detalhamento
     st.subheader("📋 Detalhamento das Operações")
     cols_view = ['data', 'cliente', 'vendedor', 'sdr', 'plano', 'status', 'mrr', 'adesao']
     st.dataframe(df_f[cols_view].sort_values('data', ascending=False), use_container_width=True)
 
 else:
-    st.error("Falha na conexão com os dados. Verifique as permissões das planilhas.")
+    st.error("Nenhum dado válido encontrado para o período selecionado ou erro na conexão.")
