@@ -62,7 +62,8 @@ def processar_dados():
         'cliente': encontrar_coluna(df_vendas_raw, 'cliente'),
         'cnpj': encontrar_coluna(df_vendas_raw, 'cnpj'),
         'produto': encontrar_coluna(df_vendas_raw, 'Qual produto?'),
-        'data_ativacao': encontrar_coluna(df_vendas_raw, 'Data de Ativação'),
+        'data_ativacao': encontrar_coluna(df_vendas_raw, 'Data de Ativação'), # Coluna H
+        'data_alteracao': encontrar_coluna(df_vendas_raw, 'Data alteração de CNPJ'), # Coluna X
         'mrr': encontrar_coluna(df_vendas_raw, 'Mensalidade - Simples'),
         'adesao_s': encontrar_coluna(df_vendas_raw, 'Adesão - Simples'),
         'adesao_r': encontrar_coluna(df_vendas_raw, 'Adesão - Recupera'),
@@ -81,22 +82,25 @@ def processar_dados():
         df.loc[df['produto'].astype(str).str.strip() == "", 'produto'] = "Sittax Simples"
     else: df['produto'] = "Sittax Simples"
     
-    if map_cols['data_ativacao']:
-        df['data'] = pd.to_datetime(df_vendas_raw[map_cols['data_ativacao']], errors='coerce', dayfirst=True)
-        df['ano'] = df['data'].dt.year.fillna(0).astype(int)
-        df['mes_num'] = df['data'].dt.month.fillna(0).astype(int)
-        meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
-                    7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
-        df['mes_nome'] = df['mes_num'].map(meses_pt).fillna("Sem Data")
-        df['inicio_semana'] = df['data'].apply(lambda x: x - pd.Timedelta(days=x.weekday()) if pd.notnull(x) else pd.NaT)
-    else:
-        df['data'] = pd.NaT
-        df['ano'] = 0
-        df['mes_nome'] = "Sem Data"
-
+    # Lógica de Data Híbrida: Coluna H para Ativação, Coluna X para Upsell
+    df['data_h'] = pd.to_datetime(df_vendas_raw[map_cols['data_ativacao']], errors='coerce', dayfirst=True) if map_cols['data_ativacao'] else pd.NaT
+    df['data_x'] = pd.to_datetime(df_vendas_raw[map_cols['data_alteracao']], errors='coerce', dayfirst=True) if map_cols['data_alteracao'] else pd.NaT
+    
     df['mrr'] = parse_currency(df_vendas_raw[map_cols['mrr']]) if map_cols['mrr'] else 0.0
-    df['adesao'] = parse_currency(df_vendas_raw[map_cols['adesao_s']]) + parse_currency(df_vendas_raw[map_cols['adesao_r']])
     df['upgrade'] = parse_currency(df_vendas_raw[map_cols['upgrade']]) if map_cols['upgrade'] else 0.0
+    
+    # Define a data oficial: Se tem upgrade, usa Coluna X. Se não, usa Coluna H.
+    df['data'] = df['data_h']
+    df.loc[df['upgrade'] > 0, 'data'] = df['data_x']
+    
+    df['ano'] = df['data'].dt.year.fillna(0).astype(int)
+    df['mes_num'] = df['data'].dt.month.fillna(0).astype(int)
+    meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+                7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
+    df['mes_nome'] = df['mes_num'].map(meses_pt).fillna("Sem Data")
+    df['inicio_semana'] = df['data'].apply(lambda x: x - pd.Timedelta(days=x.weekday()) if pd.notnull(x) else pd.NaT)
+
+    df['adesao'] = parse_currency(df_vendas_raw[map_cols['adesao_s']]) + parse_currency(df_vendas_raw[map_cols['adesao_r']])
     df['downgrade'] = parse_currency(df_vendas_raw[map_cols['downgrade']]) if map_cols['downgrade'] else 0.0
     df['receita_total'] = df['mrr'] + df['adesao'] + df['upgrade']
 
@@ -108,9 +112,8 @@ def processar_dados():
             canc_cnpjs = df_cancelados_raw[col_cnpj_canc].astype(str).str.replace(r'\D', '', regex=True).unique()
             df.loc[vendas_cnpj.isin(canc_cnpjs), 'status'] = 'Cancelada'
     
-    # Auditoria: Remover apenas linhas totalmente vazias (sem cliente e sem valores financeiros)
+    # Auditoria: Manter registros com Cliente e (MRR > 0 OU Upsell > 0)
     df = df[~((df['cliente'].isna() | (df['cliente'] == "N/A")) & (df['mrr'] == 0) & (df['upgrade'] == 0))]
-    
     return df
 
 # --- UI ---
