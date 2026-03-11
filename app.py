@@ -289,28 +289,30 @@ if df_processed is not None:
 
     st.divider()
 
-    # --- RANKINGS DE VENDEDORES (REPOSICIONADO AQUI) ---
+    # --- RANKINGS DE VENDEDORES (BARRAS HORIZONTAIS PREMIUM) ---
     st.subheader("🏆 Rankings de Vendedores")
     col_rank1, col_rank2 = st.columns(2)
 
     with col_rank1:
-        df_rank_contratos = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['cliente'].count().sort_values(ascending=False).reset_index()
+        df_rank_contratos = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['cliente'].count().sort_values(ascending=True).reset_index()
         df_rank_contratos.columns = ['Vendedor', 'Contratos']
-        # Alterado para Pizza conforme solicitado
-        fig_contratos = px.pie(df_rank_contratos.head(10), values='Contratos', names='Vendedor', 
-                               title='Top Vendedores (Contratos)', hole=0.4,
-                               color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY, '#1A3A5A', '#2E5A88'])
-        fig_contratos.update_traces(textinfo="label+value", textposition="inside", texttemplate="%{label}: %{value}")
+        # Gráfico de Barras Horizontais Premium
+        fig_contratos = px.bar(df_rank_contratos.tail(10), x='Contratos', y='Vendedor', orientation='h',
+                               title='Top Vendedores (Contratos)', text='Contratos',
+                               color_discrete_sequence=[COLOR_PRIMARY])
+        fig_contratos.update_traces(textposition='inside', textfont_color='white')
+        fig_contratos.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
         st.plotly_chart(fig_contratos, use_container_width=True)
 
     with col_rank2:
-        df_rank_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=False).reset_index()
+        df_rank_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=True).reset_index()
         df_rank_mrr.columns = ['Vendedor', 'MRR']
-        # Alterado para Pizza conforme solicitado
-        fig_mrr = px.pie(df_rank_mrr.head(10), values='MRR', names='Vendedor', 
-                         title='Top Vendedores (MRR)', hole=0.4,
-                         color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY, '#1A3A5A', '#2E5A88'])
-        fig_mrr.update_traces(textinfo="label+value", textposition="inside", texttemplate="%{label}: R$ %{value:,.2f}")
+        # Gráfico de Barras Horizontais Premium
+        fig_mrr = px.bar(df_rank_mrr.tail(10), x='MRR', y='Vendedor', orientation='h',
+                         title='Top Vendedores (MRR)', text=df_rank_mrr.tail(10)['MRR'].apply(lambda x: f"R$ {x:,.2f}"),
+                         color_discrete_sequence=[COLOR_SECONDARY])
+        fig_mrr.update_traces(textposition='inside', textfont_color=COLOR_PRIMARY)
+        fig_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
         st.plotly_chart(fig_mrr, use_container_width=True)
 
     st.divider()
