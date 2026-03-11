@@ -16,9 +16,12 @@ COLOR_BG = "#F0F2F6"        # Cinza Claro Fundo
 
 # Função para carregar imagem local e converter para base64
 def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+    try:
+        with open(bin_file, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except:
+        return None
 
 # Estilização CSS Customizada
 st.markdown(f"""
@@ -35,10 +38,8 @@ st.markdown(f"""
     .stMetric div[data-testid="stMetricValue"] {{ color: {COLOR_TEXT} !important; font-size: 1.8rem !important; }}
     .stMetric div[data-testid="stMetricDelta"] {{ color: {COLOR_SECONDARY} !important; }}
     
-    /* Ajuste de fontes e títulos */
     h1, h2, h3 {{ color: {COLOR_PRIMARY}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
     
-    /* Sidebar estilizada */
     [data-testid="stSidebar"] {{ background-color: {COLOR_PRIMARY}; color: {COLOR_TEXT}; }}
     [data-testid="stSidebar"] label {{ color: {COLOR_TEXT} !important; }}
     [data-testid="stSidebar"] .stSelectbox div {{ color: {COLOR_PRIMARY} !important; }}
@@ -53,14 +54,14 @@ CANCELADOS_GID = "606807719"
 
 @st.cache_data(ttl=600)
 def load_data(sheet_id, gid=None):
-    url = f"https://docs.google.com/spreadsheets/d/{{sheet_id}}/export?format=csv"
-    if gid: url += f"&gid={{gid}}"
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+    if gid: url += f"&gid={gid}"
     try:
         df = pd.read_csv(url )
         df.columns = df.columns.str.strip()
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar dados: {{e}}")
+        st.error(f"Erro ao carregar dados: {e}")
         return pd.DataFrame()
 
 def parse_currency(series):
@@ -104,8 +105,8 @@ def processar_dados():
     df = df.dropna(subset=['data'])
     df['ano'] = df['data'].dt.year.astype(int)
     df['mes_num'] = df['data'].dt.month.astype(int)
-    meses_pt = {{1:'Janeiro', 2:'Fevereiro', 3:'Março', 4:'Abril', 5:'Maio', 6:'Junho',
-                7:'Julho', 8:'Agosto', 9:'Setembro', 10:'Outubro', 11:'Novembro', 12:'Dezembro'}}
+    meses_pt = {1:'Janeiro', 2:'Fevereiro', 3:'Março', 4:'Abril', 5:'Maio', 6:'Junho',
+                7:'Julho', 8:'Agosto', 9:'Setembro', 10:'Outubro', 11:'Novembro', 12:'Dezembro'}
     df['mes_nome'] = df['mes_num'].map(meses_pt)
     df['inicio_semana'] = df['data'].apply(lambda x: x - pd.Timedelta(days=x.weekday()))
 
@@ -120,13 +121,13 @@ def processar_dados():
 df = processar_dados()
 if df is not None:
     # Sidebar com Logotipo
-    try:
-        logo_base64 = get_base64_of_bin_file('/home/ubuntu/logo_acelerar_tech.png')
+    logo_base64 = get_base64_of_bin_file('/home/ubuntu/logo_acelerar_tech.png')
+    if logo_base64:
         st.sidebar.markdown(
-            f'<div style="text-align: center;"><img src="data:image/png;base64,{{logo_base64}}" width="200"></div>',
+            f'<div style="text-align: center;"><img src="data:image/png;base64,{logo_base64}" width="200"></div>',
             unsafe_allow_html=True
         )
-    except:
+    else:
         st.sidebar.title("Acelerar.tech")
     
     st.sidebar.divider()
@@ -162,14 +163,14 @@ if df is not None:
     st.title("📊 Dashboard Comercial Estratégico")
     
     c1, c2, c3 = st.columns(3)
-    c1.metric("MRR Conquistado", f"R$ {{mrr_conq:,.2f}}")
-    c2.metric("MRR Ativo (Net)", f"R$ {{mrr_conq - mrr_perd:,.2f}}")
-    c3.metric("MRR Perdido (Churn)", f"R$ {{mrr_perd:,.2f}}", delta=f"{{churn_p:.1f}}% do Conquistado", delta_color="inverse")
+    c1.metric("MRR Conquistado", f"R$ {mrr_conq:,.2f}")
+    c2.metric("MRR Ativo (Net)", f"R$ {mrr_conq - mrr_perd:,.2f}")
+    c3.metric("MRR Perdido (Churn)", f"R$ {mrr_perd:,.2f}", delta=f"{churn_p:.1f}% do Conquistado", delta_color="inverse")
     
     c4, c5, c6 = st.columns(3)
-    c4.metric("Total de Upsell", f"R$ {{upsell_v:,.2f}}", delta=f"{{upsell_q}} eventos")
-    c5.metric("Ticket Médio", f"R$ {{tkt_med:,.2f}}")
-    c6.metric("Adesão Total", f"R$ {{df_f['adesao'].sum():,.2f}}")
+    c4.metric("Total de Upsell", f"R$ {upsell_v:,.2f}", delta=f"{upsell_q} eventos")
+    c5.metric("Ticket Médio", f"R$ {tkt_med:,.2f}")
+    c6.metric("Adesão Total", f"R$ {df_f['adesao'].sum():,.2f}")
     
     c7, c8, c9 = st.columns(3)
     c7.metric("Clientes fechado (no periodo)", cl_fech)
@@ -182,24 +183,24 @@ if df is not None:
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        df_m = df_ano[df_ano['status'] == 'Confirmada'].groupby(['mes_num','mes_nome']).agg({{'mrr':'sum', 'cliente':'count'}}).reset_index().sort_values('mes_num')
+        df_m = df_ano[df_ano['status'] == 'Confirmada'].groupby(['mes_num','mes_nome']).agg({'mrr':'sum', 'cliente':'count'}).reset_index().sort_values('mes_num')
         fig = px.bar(df_m, x='mes_nome', y='mrr', text='cliente', title="MRR Conquistado", color_discrete_sequence=[COLOR_PRIMARY])
-        fig.update_traces(texttemplate='%{{text}}', textposition='inside')
+        fig.update_traces(texttemplate='%{text}', textposition='inside')
         fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        df_u = df_ano[df_ano['upgrade'] > 0].groupby(['mes_num','mes_nome']).agg({{'upgrade':'sum', 'cliente':'count'}}).reset_index().sort_values('mes_num')
+        df_u = df_ano[df_ano['upgrade'] > 0].groupby(['mes_num','mes_nome']).agg({'upgrade':'sum', 'cliente':'count'}).reset_index().sort_values('mes_num')
         fig = px.bar(df_u, x='mes_nome', y='upgrade', text='cliente', title="Evolução de Upsell", color_discrete_sequence=[COLOR_SECONDARY])
-        fig.update_traces(texttemplate='%{{text}}', textposition='inside')
+        fig.update_traces(texttemplate='%{text}', textposition='inside')
         fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
         
     with col3:
-        df_c = df_ano[df_ano['status'] == 'Cancelada'].groupby(['mes_num','mes_nome']).agg({{'mrr':'sum', 'cliente':'count'}}).reset_index().sort_values('mes_num')
+        df_c = df_ano[df_ano['status'] == 'Cancelada'].groupby(['mes_num','mes_nome']).agg({'mrr':'sum', 'cliente':'count'}).reset_index().sort_values('mes_num')
         df_c = df_c[df_c['mrr'] > 0]
         fig = px.bar(df_c, x='mes_nome', y='mrr', text='cliente', title="Churn Mensal", color_discrete_sequence=['#E74C3C'])
-        fig.update_traces(texttemplate='%{{text}}', textposition='inside')
+        fig.update_traces(texttemplate='%{text}', textposition='inside')
         fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
 
@@ -208,7 +209,7 @@ if df is not None:
     st.subheader("🎯 Performance vs. Metas")
     col4, col5 = st.columns(2)
     
-    df_meta = df_f[df_f['status'] == 'Confirmada'].groupby(['mes_num','mes_nome']).agg({{'mrr':'sum', 'cliente':'count'}}).reset_index().sort_values('mes_num')
+    df_meta = df_f[df_f['status'] == 'Confirmada'].groupby(['mes_num','mes_nome']).agg({'mrr':'sum', 'cliente':'count'}).reset_index().sort_values('mes_num')
     df_meta['mrr_a'] = df_meta['mrr'].cumsum()
     df_meta['cont_a'] = df_meta['cliente'].cumsum()
     df_meta['meta_m'] = [8000 * (i+1) for i in range(len(df_meta))]
@@ -234,7 +235,7 @@ if df is not None:
     with col6:
         df_s = df_f[df_f['status'] == 'Confirmada'].groupby('inicio_semana')['mrr'].sum().reset_index().sort_values('inicio_semana')
         df_s['data_s'] = df_s['inicio_semana'].dt.strftime('%d/%m/%Y')
-        fig = go.Figure(go.Scatter(x=df_s['data_s'], y=df_s['mrr'], mode='lines+markers+text', text=df_s['mrr'].apply(lambda x: f"{{x:,.0f}}"), textposition="top center", line=dict(color=COLOR_PRIMARY, width=4)))
+        fig = go.Figure(go.Scatter(x=df_s['data_s'], y=df_s['mrr'], mode='lines+markers+text', text=df_s['mrr'].apply(lambda x: f"{x:,.0f}"), textposition="top center", line=dict(color=COLOR_PRIMARY, width=4)))
         fig.update_layout(title="MRR SEMANA", xaxis_title=None, yaxis_title=None, showlegend=False, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     
