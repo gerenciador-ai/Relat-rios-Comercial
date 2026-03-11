@@ -24,7 +24,7 @@ def get_base64_of_bin_file(bin_file):
     except:
         return None
 
-# Estilização CSS Customizada - REFINADA
+# Estilização CSS Customizada - UI REFINADA
 st.markdown(f"""
     <style>
     .main {{ background-color: {COLOR_BG}; }}
@@ -39,7 +39,6 @@ st.markdown(f"""
         min-width: 180px !important;
     }}
     
-    /* Ajuste para evitar corte de texto */
     div[data-testid="stMetricValue"] {{
         font-size: 1.6rem !important;
         white-space: nowrap !important;
@@ -65,22 +64,39 @@ st.markdown(f"""
     }}
     div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] svg {{
         fill: {COLOR_CHURN} !important;
-        transform: rotate(180deg) !important; /* Seta para baixo */
+        transform: rotate(180deg) !important;
     }}
 
-    /* CSS para o Upsell (Manter Original) */
-    div[data-testid="column"]:nth-of-type(4) div[data-testid="stMetricDelta"] {{
-        color: {COLOR_SECONDARY} !important;
+    /* REFINAMENTO DA SIDEBAR (FILTROS) */
+    [data-testid="stSidebar"] {{
+        background-color: {COLOR_PRIMARY} !important;
     }}
-    div[data-testid="column"]:nth-of-type(4) div[data-testid="stMetricDelta"] svg {{
-        fill: {COLOR_SECONDARY} !important;
-    }}
-
-    h1, h2, h3 {{ color: {COLOR_PRIMARY}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
     
-    [data-testid="stSidebar"] {{ background-color: {COLOR_PRIMARY}; color: {COLOR_TEXT}; }}
-    [data-testid="stSidebar"] label {{ color: {COLOR_TEXT} !important; }}
-    [data-testid="stSidebar"] .stSelectbox div {{ color: {COLOR_PRIMARY} !important; }}
+    /* Forçar cor branca em todos os labels e textos da sidebar */
+    [data-testid="stSidebar"] .stMarkdown p, 
+    [data-testid="stSidebar"] label, 
+    [data-testid="stSidebar"] .stExpander p,
+    [data-testid="stSidebar"] .stMultiSelect label {{
+        color: {COLOR_TEXT} !important;
+        font-weight: 600 !important;
+    }}
+
+    /* Estilo para as caixas de seleção (Inputs) */
+    [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"],
+    [data-testid="stSidebar"] .stMultiSelect div[data-baseweb="select"] {{
+        background-color: #F8F9FA !important;
+        color: {COLOR_PRIMARY} !important;
+        border-radius: 5px !important;
+    }}
+
+    /* Cor do texto dentro do expander e ícones */
+    [data-testid="stSidebar"] .stExpander {{
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 8px !important;
+    }}
+    
+    h1, h2, h3 {{ color: {COLOR_PRIMARY}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -164,27 +180,30 @@ df_processed, df_contas_receber = processar_dados()
 if df_processed is not None:
     df = df_processed
 
-    # Sidebar com Logotipo
+    # Sidebar com Logotipo FIXO NO TOPO
     logo_base64 = get_base64_of_bin_file('/home/ubuntu/logo_acelerar_tech.png')
     if logo_base64:
         st.sidebar.markdown(
-            f'<div style="text-align: center;"><img src="data:image/png;base64,{logo_base64}" width="200"></div>',
+            f'<div style="text-align: center; margin-bottom: 20px;"><img src="data:image/png;base64,{logo_base64}" width="180"></div>',
             unsafe_allow_html=True
         )
     
-    st.sidebar.divider()
-    st.sidebar.header("🔍 Filtros")
+    st.sidebar.markdown("<h3 style='color: white; text-align: center;'>🔍 Filtros Estratégicos</h3>", unsafe_allow_html=True)
+    
     anos = sorted(df['ano'].unique(), reverse=True)
-    ano_sel = st.sidebar.selectbox("Ano", anos)
+    ano_sel = st.sidebar.selectbox("📅 Ano de Referência", anos)
     df_ano = df[df['ano'] == ano_sel]
     
-    meses_ordem = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-    meses_disp = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
-    meses_sel = st.sidebar.multiselect("Meses", meses_disp, default=meses_disp)
+    # OPÇÃO B: Filtro de Meses dentro de um Expander para economizar espaço
+    with st.sidebar.expander("📅 Selecionar Período (Meses)"):
+        meses_ordem = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+        meses_disp = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
+        meses_sel = st.multiselect("Meses", meses_disp, default=meses_disp)
     
-    prod_sel = st.sidebar.selectbox("Produto", ["Todos"] + sorted(df['produto'].unique().tolist()))
-    vend_sel = st.sidebar.selectbox("Vendedor", ["Todos"] + sorted(df['vendedor'].unique().tolist()))
-    sdr_sel = st.sidebar.selectbox("SDR", ["Todos"] + sorted(df['sdr'].unique().tolist()))
+    st.sidebar.divider()
+    prod_sel = st.sidebar.selectbox("📦 Produto", ["Todos"] + sorted(df['produto'].unique().tolist()))
+    vend_sel = st.sidebar.selectbox("👤 Vendedor", ["Todos"] + sorted(df['vendedor'].unique().tolist()))
+    sdr_sel = st.sidebar.selectbox("🎧 SDR", ["Todos"] + sorted(df['sdr'].unique().tolist()))
 
     df_f = df_ano[df_ano['mes_nome'].isin(meses_sel)].copy()
     if prod_sel != "Todos": df_f = df_f[df_f['produto'] == prod_sel]
@@ -296,7 +315,6 @@ if df_processed is not None:
     with col_rank1:
         df_rank_contratos = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['cliente'].count().sort_values(ascending=True).reset_index()
         df_rank_contratos.columns = ['Vendedor', 'Contratos']
-        # Gráfico de Barras Horizontais Premium
         fig_contratos = px.bar(df_rank_contratos.tail(10), x='Contratos', y='Vendedor', orientation='h',
                                title='Top Vendedores (Contratos)', text='Contratos',
                                color_discrete_sequence=[COLOR_PRIMARY])
@@ -307,7 +325,6 @@ if df_processed is not None:
     with col_rank2:
         df_rank_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=True).reset_index()
         df_rank_mrr.columns = ['Vendedor', 'MRR']
-        # Gráfico de Barras Horizontais Premium
         fig_mrr = px.bar(df_rank_mrr.tail(10), x='MRR', y='Vendedor', orientation='h',
                          title='Top Vendedores (MRR)', text=df_rank_mrr.tail(10)['MRR'].apply(lambda x: f"R$ {x:,.2f}"),
                          color_discrete_sequence=[COLOR_SECONDARY])
