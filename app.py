@@ -72,7 +72,6 @@ st.markdown(f"""
         background-color: {COLOR_PRIMARY} !important;
     }}
     
-    /* Forçar cor branca em todos os labels e textos da sidebar */
     [data-testid="stSidebar"] .stMarkdown p, 
     [data-testid="stSidebar"] label, 
     [data-testid="stSidebar"] .stExpander p,
@@ -81,7 +80,6 @@ st.markdown(f"""
         font-weight: 600 !important;
     }}
 
-    /* Estilo para as caixas de seleção (Inputs) */
     [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"],
     [data-testid="stSidebar"] .stMultiSelect div[data-baseweb="select"] {{
         background-color: #F8F9FA !important;
@@ -89,7 +87,6 @@ st.markdown(f"""
         border-radius: 5px !important;
     }}
 
-    /* Cor do texto dentro do expander e ícones */
     [data-testid="stSidebar"] .stExpander {{
         background-color: rgba(255, 255, 255, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -194,7 +191,6 @@ if df_processed is not None:
     ano_sel = st.sidebar.selectbox("📅 Ano de Referência", anos)
     df_ano = df[df['ano'] == ano_sel]
     
-    # OPÇÃO B: Filtro de Meses dentro de um Expander para economizar espaço
     with st.sidebar.expander("📅 Selecionar Período (Meses)"):
         meses_ordem = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
         meses_disp = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
@@ -308,6 +304,32 @@ if df_processed is not None:
 
     st.divider()
 
+    # --- RANKINGS DE SDRs (BARRAS HORIZONTAIS PREMIUM) ---
+    st.subheader("🏆 Rankings de SDRs")
+    col_sdr1, col_sdr2 = st.columns(2)
+
+    with col_sdr1:
+        df_rank_sdr_cont = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['cliente'].count().sort_values(ascending=True).reset_index()
+        df_rank_sdr_cont.columns = ['SDR', 'Contratos']
+        fig_sdr_cont = px.bar(df_rank_sdr_cont.tail(10), x='Contratos', y='SDR', orientation='h',
+                               title='Top SDRs (Contratos)', text='Contratos',
+                               color_discrete_sequence=[COLOR_PRIMARY])
+        fig_sdr_cont.update_traces(textposition='inside', textfont_color='white')
+        fig_sdr_cont.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
+        st.plotly_chart(fig_sdr_cont, use_container_width=True)
+
+    with col_sdr2:
+        df_rank_sdr_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['mrr'].sum().sort_values(ascending=True).reset_index()
+        df_rank_sdr_mrr.columns = ['SDR', 'MRR']
+        fig_sdr_mrr = px.bar(df_rank_sdr_mrr.tail(10), x='MRR', y='SDR', orientation='h',
+                         title='Top SDRs (MRR)', text=df_rank_sdr_mrr.tail(10)['MRR'].apply(lambda x: f"R$ {x:,.2f}"),
+                         color_discrete_sequence=[COLOR_SECONDARY])
+        fig_sdr_mrr.update_traces(textposition='inside', textfont_color=COLOR_PRIMARY)
+        fig_sdr_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
+        st.plotly_chart(fig_sdr_mrr, use_container_width=True)
+
+    st.divider()
+
     # --- RANKINGS DE VENDEDORES (BARRAS HORIZONTAIS PREMIUM) ---
     st.subheader("🏆 Rankings de Vendedores")
     col_rank1, col_rank2 = st.columns(2)
@@ -335,7 +357,7 @@ if df_processed is not None:
     st.divider()
 
     st.subheader("📋 Detalhamento")
-    st.dataframe(df_f[['data', 'cliente', 'vendedor', 'produto', 'status', 'mrr', 'upgrade', 'adesao']].sort_values('data', ascending=False), use_container_width=True)
+    st.dataframe(df_f[['data', 'cliente', 'vendedor', 'sdr', 'produto', 'status', 'mrr', 'upgrade', 'adesao']].sort_values('data', ascending=False), use_container_width=True)
 
     # Verificação silenciosa da nova planilha
     if df_contas_receber is not None and not df_contas_receber.empty:
