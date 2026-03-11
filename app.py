@@ -21,15 +21,74 @@ st.markdown(f"""
     * {{
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
     }}
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {{
+    html, body {{
+        width: 100%;
+        height: 100%;
+        background-color: {COLOR_LOGIN_BG} !important;
+    }}
+    [data-testid="stAppViewContainer"] {{
         background-color: {COLOR_BG} !important;
         color: {COLOR_TEXT} !important;
-        width: 100% !important;
-        height: 100% !important;
     }}
-    .login-page {{
+    [data-testid="stMainBlockContainer"] {{
+        background-color: {COLOR_BG} !important;
+    }}
+    .login-wrapper {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
         background-color: {COLOR_LOGIN_BG} !important;
+        padding: 20px;
+    }}
+    .login-card {{
+        background-color: rgba(15, 36, 56, 0.95) !important;
+        border: 2px solid {COLOR_SECONDARY};
+        border-radius: 15px;
+        padding: 40px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        text-align: center;
+    }}
+    .login-card img {{
+        width: 100%;
+        max-width: 350px;
+        height: auto;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        display: block;
+    }}
+    .login-card input {{
+        background-color: #1a3a52 !important;
+        color: {COLOR_TEXT} !important;
+        border: 1px solid {COLOR_SECONDARY} !important;
+        border-radius: 8px !important;
+        padding: 12px 15px !important;
+        margin-bottom: 15px !important;
+        font-size: 1rem !important;
+    }}
+    .login-card input::placeholder {{
+        color: rgba(255, 255, 255, 0.5) !important;
+    }}
+    .login-card button {{
+        background-color: {COLOR_SECONDARY} !important;
+        color: {COLOR_PRIMARY} !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 12px 20px !important;
+        font-weight: bold !important;
+        font-size: 1rem !important;
+        cursor: pointer !important;
+        width: 100% !important;
+        margin-top: 10px !important;
+    }}
+    .login-card button:hover {{
+        background-color: #7ab8d6 !important;
+        transform: scale(1.02);
+        transition: all 0.3s ease;
     }}
     [data-testid="stSidebar"] {{
         background-color: {COLOR_PRIMARY} !important;
@@ -193,23 +252,19 @@ def parse_currency(series):
     return series.apply(clean_val)
 
 def render_login():
-    st.markdown('<div class="login-page">', unsafe_allow_html=True)
-    
     img_base64 = get_base64_of_bin_file('Acelerar-Identidade-Visual.png')
     
-    col1, col2, col3 = st.columns([1, 2, 1])
+    st.markdown(f"""
+        <div class="login-wrapper">
+            <div class="login-card">
+                {f'<img src="data:image/png;base64,{img_base64}" alt="Acelerar.tech">' if img_base64 else ''}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
-        st.markdown("<div style='text-align: center; margin-top: 100px; margin-bottom: 40px;'>", unsafe_allow_html=True)
-        
-        if img_base64:
-            st.markdown(f"""
-                <div style="text-align: center; margin-bottom: 40px;">
-                    <img src="data:image/png;base64,{img_base64}" width="300" style="border-radius: 10px;">
-                </div>
-                """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top: -150px;'>", unsafe_allow_html=True)
         
         with st.form("form_login"):
             email = st.text_input("📧 E-mail", placeholder="seu.email@empresa.com", key="login_email")
@@ -237,8 +292,8 @@ def render_login():
                             st.session_state.email_usuario = email
                             st.success("Login realizado com sucesso!")
                             st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
 
 def processar_dados(empresa):
     config = EMPRESAS[empresa]
