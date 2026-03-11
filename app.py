@@ -24,7 +24,7 @@ def get_base64_of_bin_file(bin_file):
     except:
         return None
 
-# Estilização CSS Customizada - UI REFINADA
+# Estilização CSS Customizada - VERSÃO EXECUTIVA PREMIUM
 st.markdown(f"""
     <style>
     .main {{ background-color: {COLOR_BG}; }}
@@ -53,18 +53,24 @@ st.markdown(f"""
         font-size: 0.9rem !important;
     }}
 
-    /* CSS EXCLUSIVO PARA O CARD DE CHURN (3º CARD DA LINHA 1) */
+    /* CORREÇÃO DEFINITIVA DO CARD DE CHURN (3º CARD DA LINHA 1) */
     div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetric"] {{
         border: 2px solid {COLOR_CHURN} !important;
     }}
     div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricLabel"] > div,
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricValue"],
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] > div {{
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricValue"] {{
         color: {COLOR_CHURN} !important;
+    }}
+    /* Estilo para a pílula do Delta no Churn */
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] > div {{
+        background-color: rgba(231, 76, 60, 0.2) !important; /* Fundo vermelho suave */
+        color: {COLOR_CHURN} !important;
+        padding: 2px 8px !important;
+        border-radius: 15px !important;
     }}
     div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] svg {{
         fill: {COLOR_CHURN} !important;
-        transform: rotate(180deg) !important;
+        transform: rotate(180deg) !important; /* Seta para baixo */
     }}
 
     /* REFINAMENTO DA SIDEBAR (FILTROS) */
@@ -206,7 +212,7 @@ if df_processed is not None:
     if vend_sel != "Todos": df_f = df_f[df_f['vendedor'] == vend_sel]
     if sdr_sel != "Todos": df_f = df_f[df_f['sdr'] == sdr_sel]
 
-    # KPIs
+    # KPIs (Sem decimais conforme solicitado)
     mrr_conq = df_f[df_f['status'] == 'Confirmada']['mrr'].sum()
     mrr_perd = df_f[df_f['status'] == 'Cancelada']['mrr'].sum()
     upsell_v = df_f['upgrade'].sum()
@@ -219,17 +225,17 @@ if df_processed is not None:
 
     st.title("📊 Dashboard Comercial Estratégico")
     
-    # Linha 1 de KPIs (5 colunas)
+    # Linha 1 de KPIs (5 colunas) - Formatação sem decimais
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("MRR Conquistado", f"R$ {mrr_conq:,.2f}")
-    c2.metric("MRR Ativo (Net)", f"R$ {mrr_conq - mrr_perd:,.2f}")
-    c3.metric("MRR Perdido (Churn)", f"R$ {mrr_perd:,.2f}", delta=f"{churn_p:.1f}% do Conq", delta_color="normal")
-    c4.metric("Total de Upsell", f"R$ {upsell_v:,.2f}", delta=f"{upsell_q} eventos", delta_color="normal")
-    c5.metric("Ticket Médio", f"R$ {tkt_med:,.2f}")
+    c1.metric("MRR Conquistado", f"R$ {int(mrr_conq):,}".replace(",", "."))
+    c2.metric("MRR Ativo (Net)", f"R$ {int(mrr_conq - mrr_perd):,}".replace(",", "."))
+    c3.metric("MRR Perdido (Churn)", f"R$ {int(mrr_perd):,}".replace(",", "."), delta=f"{churn_p:.1f}% do Conq", delta_color="normal")
+    c4.metric("Total de Upsell", f"R$ {int(upsell_v):,}".replace(",", "."), delta=f"{upsell_q} eventos", delta_color="normal")
+    c5.metric("Ticket Médio", f"R$ {int(tkt_med):,}".replace(",", "."))
     
     # Linha 2 de KPIs (4 colunas)
     c6, c7, c8, c9 = st.columns(4)
-    c6.metric("Adesão Total", f"R$ {df_f['adesao'].sum():,.2f}")
+    c6.metric("Adesão Total", f"R$ {int(df_f['adesao'].sum()):,}".replace(",", "."))
     c7.metric("Clientes fechado", cl_fech)
     c8.metric("Clientes Cancelados", cl_canc)
     c9.metric("Total Base Ativa", base_ativa)
@@ -256,7 +262,8 @@ if df_processed is not None:
     with col3:
         df_c_evol = df_ano[df_ano['status'] == 'Cancelada'].groupby(['mes_num','mes_nome']).agg({'mrr':'sum', 'cliente':'count'}).reset_index().sort_values('mes_num')
         df_c_evol = df_c_evol[df_c_evol['mrr'] > 0]
-        fig = px.bar(df_c_evol, x='mes_nome', y='mrr', text='cliente', title="Evolução de Churn", color_discrete_sequence=[COLOR_CHURN])
+        # Padronizado para Azul Marinho conforme solicitado
+        fig = px.bar(df_c_evol, x='mes_nome', y='mrr', text='cliente', title="Evolução de Churn", color_discrete_sequence=[COLOR_PRIMARY])
         fig.update_traces(texttemplate='%{text}', textposition='inside')
         fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
@@ -293,7 +300,7 @@ if df_processed is not None:
     with col6:
         df_s = df_f[df_f['status'] == 'Confirmada'].groupby('inicio_semana')['mrr'].sum().reset_index().sort_values('inicio_semana')
         df_s['data_s'] = df_s['inicio_semana'].dt.strftime('%d/%m/%Y')
-        fig = go.Figure(go.Scatter(x=df_s['data_s'], y=df_s['mrr'], mode='lines+markers+text', text=df_s['mrr'].apply(lambda x: f"{x:,.0f}"), textposition="top center", line=dict(color=COLOR_PRIMARY, width=4)))
+        fig = go.Figure(go.Scatter(x=df_s['data_s'], y=df_s['mrr'], mode='lines+markers+text', text=df_s['mrr'].apply(lambda x: f"{int(x):,}"), textposition="top center", line=dict(color=COLOR_PRIMARY, width=4)))
         fig.update_layout(title="MRR SEMANA", xaxis_title=None, yaxis_title=None, showlegend=False, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     
@@ -304,33 +311,33 @@ if df_processed is not None:
 
     st.divider()
 
-    # --- RANKINGS DE SDRs (BARRAS HORIZONTAIS PREMIUM) ---
-    st.subheader("🏆 Rankings de SDRs")
+    # --- RANKINGS DE SDRs (TOP 5 - SEM DECIMAIS) ---
+    st.subheader("🏆 Rankings de SDRs (Top 5)")
     col_sdr1, col_sdr2 = st.columns(2)
 
     with col_sdr1:
         df_rank_sdr_cont = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['cliente'].count().sort_values(ascending=True).reset_index()
         df_rank_sdr_cont.columns = ['SDR', 'Contratos']
-        fig_sdr_cont = px.bar(df_rank_sdr_cont.tail(10), x='Contratos', y='SDR', orientation='h',
-                               title='Top SDRs (Contratos)', text='Contratos',
+        fig_sdr_cont = px.bar(df_rank_sdr_cont.tail(5), x='Contratos', y='SDR', orientation='h',
+                               title='Top 5 SDRs (Contratos)', text='Contratos',
                                color_discrete_sequence=[COLOR_PRIMARY])
         fig_sdr_cont.update_traces(textposition='inside', textfont_color='white')
-        fig_sdr_cont.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
+        fig_sdr_cont.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
         st.plotly_chart(fig_sdr_cont, use_container_width=True)
 
     with col_sdr2:
         df_rank_sdr_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['mrr'].sum().sort_values(ascending=True).reset_index()
         df_rank_sdr_mrr.columns = ['SDR', 'MRR']
-        fig_sdr_mrr = px.bar(df_rank_sdr_mrr.tail(10), x='MRR', y='SDR', orientation='h',
-                         title='Top SDRs (MRR)', text=df_rank_sdr_mrr.tail(10)['MRR'].apply(lambda x: f"R$ {x:,.2f}"),
+        fig_sdr_mrr = px.bar(df_rank_sdr_mrr.tail(5), x='MRR', y='SDR', orientation='h',
+                         title='Top 5 SDRs (MRR)', text=df_rank_sdr_mrr.tail(5)['MRR'].apply(lambda x: f"R$ {int(x):,}"),
                          color_discrete_sequence=[COLOR_SECONDARY])
         fig_sdr_mrr.update_traces(textposition='inside', textfont_color=COLOR_PRIMARY)
-        fig_sdr_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
+        fig_sdr_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
         st.plotly_chart(fig_sdr_mrr, use_container_width=True)
 
     st.divider()
 
-    # --- RANKINGS DE VENDEDORES (BARRAS HORIZONTAIS PREMIUM) ---
+    # --- RANKINGS DE VENDEDORES (SEM DECIMAIS) ---
     st.subheader("🏆 Rankings de Vendedores")
     col_rank1, col_rank2 = st.columns(2)
 
@@ -348,7 +355,7 @@ if df_processed is not None:
         df_rank_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=True).reset_index()
         df_rank_mrr.columns = ['Vendedor', 'MRR']
         fig_mrr = px.bar(df_rank_mrr.tail(10), x='MRR', y='Vendedor', orientation='h',
-                         title='Top Vendedores (MRR)', text=df_rank_mrr.tail(10)['MRR'].apply(lambda x: f"R$ {x:,.2f}"),
+                         title='Top Vendedores (MRR)', text=df_rank_mrr.tail(10)['MRR'].apply(lambda x: f"R$ {int(x):,}"),
                          color_discrete_sequence=[COLOR_SECONDARY])
         fig_mrr.update_traces(textposition='inside', textfont_color=COLOR_PRIMARY)
         fig_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
