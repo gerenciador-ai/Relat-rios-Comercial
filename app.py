@@ -14,116 +14,118 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 COLOR_CHURN = "#E74C3C"
-COLOR_LOGIN_BG = "#0F2438"
 
-st.markdown(f"""
+st.markdown("""
     <style>
-    * {{
+    * {
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
-    }}
-    html, body, [data-testid="stAppViewContainer"] {{
-        width: 100%;
-        height: 100%;
-        background-color: {COLOR_LOGIN_BG} !important;
-    }}
-    [data-testid="stMainBlockContainer"] {{
-        background-color: {COLOR_BG} !important;
-    }}
-    [data-testid="stSidebar"] {{
-        background-color: {COLOR_PRIMARY} !important;
-    }}
-    [data-testid="stHeader"] {{
-        background-color: {COLOR_BG} !important;
+    }
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {
+        background-color: #0A1E2E !important;
+        color: #FFFFFF !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #0B2A4E !important;
+    }
+    [data-testid="stHeader"] {
+        background-color: #0A1E2E !important;
         display: none !important;
-    }}
-    [data-testid="stToolbar"] {{
+    }
+    [data-testid="stToolbar"] {
         display: none !important;
-    }}
-    footer {{
+    }
+    footer {
         display: none !important;
-    }}
-    .stApp > header {{
+    }
+    .stApp > header {
         display: none !important;
-    }}
-    [data-testid="stDecoration"] {{
+    }
+    [data-testid="stDecoration"] {
         display: none !important;
-    }}
-    a[href*="github"], a[href*="deploy"], a[href*="settings"] {{
+    }
+    a[href*="github"], a[href*="deploy"], a[href*="settings"] {
         display: none !important;
-    }}
-    
-    div[data-testid="stMetric"] {{
-        background-color: {COLOR_PRIMARY} !important;
+    }
+    div[data-testid="stMetric"] {
+        background-color: #0B2A4E !important;
         padding: 10px 15px !important;
         border-radius: 10px !important;
         box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important;
-        color: {COLOR_TEXT} !important;
+        color: #FFFFFF !important;
         min-width: 180px !important;
-    }}
-    div[data-testid="stMetricValue"] {{
+    }
+    div[data-testid="stMetricValue"] {
         font-size: 1.6rem !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        color: {COLOR_TEXT} !important;
-    }}
-    div[data-testid="stMetricLabel"] > div {{
-        color: {COLOR_TEXT} !important;
+        color: #FFFFFF !important;
+    }
+    div[data-testid="stMetricLabel"] > div {
+        color: #FFFFFF !important;
         font-weight: bold !important;
         font-size: 0.9rem !important;
-    }}
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetric"] {{
-        border: 2px solid {COLOR_CHURN} !important;
-    }}
+    }
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetric"] {
+        border: 2px solid #E74C3C !important;
+    }
     div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricLabel"] > div,
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricValue"] {{
-        color: {COLOR_CHURN} !important;
-    }}
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] > div {{
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricValue"] {
+        color: #E74C3C !important;
+    }
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] > div {
         background-color: rgba(231, 76, 60, 0.2) !important;
-        color: {COLOR_CHURN} !important;
+        color: #E74C3C !important;
         padding: 2px 8px !important;
         border-radius: 15px !important;
-    }}
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] svg {{
-        fill: {COLOR_CHURN} !important;
-        stroke: {COLOR_CHURN} !important;
-    }}
+    }
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] svg {
+        fill: #E74C3C !important;
+        stroke: #E74C3C !important;
+    }
     [data-testid="stSidebar"] .stMarkdown p, 
     [data-testid="stSidebar"] label, 
     [data-testid="stSidebar"] .stExpander p,
-    [data-testid="stSidebar"] .stMultiSelect label {{
-        color: {COLOR_TEXT} !important;
+    [data-testid="stSidebar"] .stMultiSelect label {
+        color: #FFFFFF !important;
         font-weight: 600 !important;
-    }}
+    }
     [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"],
-    [data-testid="stSidebar"] .stMultiSelect div[data-baseweb="select"] {{
+    [data-testid="stSidebar"] .stMultiSelect div[data-baseweb="select"] {
         background-color: #F8F9FA !important;
-        color: {COLOR_PRIMARY} !important;
+        color: #0B2A4E !important;
         border-radius: 5px !important;
-    }}
-    [data-testid="stSidebar"] .stExpander {{
+    }
+    [data-testid="stSidebar"] .stExpander {
         background-color: rgba(255, 255, 255, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 8px !important;
-    }}
-    h1, h2, h3 {{
-        color: {COLOR_SECONDARY} !important;
+    }
+    h1, h2, h3 {
+        color: #0B2A4E !important;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-    }}
-    .logo-top-right {{
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        z-index: 999;
-    }}
-    .logo-top-right img {{
-        width: 120px;
-        height: auto;
-        border-radius: 5px;
-    }}
+    }
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+    .login-card {
+        background-color: rgba(10, 30, 46, 0.95) !important;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        width: 100%;
+        max-width: 400px;
+        border: 2px solid #89CFF0;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -158,14 +160,6 @@ EMPRESAS = {
 
 USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
 SENHA_MESTRA = 'Acelerar@2026'
-
-def get_base64_of_bin_file(bin_file):
-    try:
-        with open(bin_file, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except:
-        return None
 
 @st.cache_data(ttl=600)
 def load_data(sheet_id, gid=None):
@@ -204,22 +198,47 @@ def parse_currency(series):
     return series.apply(clean_val)
 
 def render_login():
-    img_base64 = get_base64_of_bin_file('Acelerar-Identidade-Visual.png')
+    img_base64 = ""
+    try:
+        if os.path.exists('logo_acelerar.png'):
+            with open('logo_acelerar.png', 'rb') as f:
+                img_data = f.read()
+            img_base64 = base64.b64encode(img_data).decode()
+    except:
+        pass
     
     if img_base64:
         st.markdown(f"""
-            <div class="logo-top-right">
-                <img src="data:image/png;base64,{img_base64}" alt="Acelerar.tech">
-            </div>
+            <style>
+            .login-bg {{
+                background-image: url('data:image/png;base64,{img_base64}');
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: -1;
+            }}
+            </style>
+            <div class="login-bg"></div>
             """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
+    
     with col2:
-        st.markdown(f"<h1 style='text-align: center; color: {COLOR_SECONDARY};'>Dashboard Comercial</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #AAAAAA;'>Acesso ao Sistema de BI Estratégico</p>", unsafe_allow_html=True)
-        
-        st.markdown("  
-", unsafe_allow_html=True)
+        st.markdown("""
+            <div style="text-align: center; margin-top: 80px; margin-bottom: 40px;">
+                <h1 style="color: #89CFF0; font-size: 2.5rem; font-weight: bold;">🔐 Dashboard Comercial</h1>
+                <p style="color: #FFFFFF; font-size: 1.1rem; margin-top: 10px;">Acelerar.tech - Holding</p>
+            </div>
+            """, unsafe_allow_html=True)
         
         with st.form("form_login"):
             email = st.text_input("📧 E-mail", placeholder="seu.email@empresa.com", key="login_email")
@@ -229,23 +248,23 @@ def render_login():
             
             if submit:
                 if not email or not senha:
-                    st.error("Por favor, preencha e-mail e senha.")
+                    st.error("❌ Por favor, preencha e-mail e senha.")
                 elif senha != SENHA_MESTRA:
-                    st.error("Senha incorreta.")
+                    st.error("❌ Senha incorreta.")
                 else:
                     df_usuarios = load_usuarios()
                     
                     if df_usuarios.empty:
-                        st.error("Erro ao carregar base de usuários.")
+                        st.error("❌ Erro ao carregar base de usuários.")
                     else:
                         usuario = df_usuarios[df_usuarios['Email'].str.lower() == email.lower()]
                         
                         if usuario.empty:
-                            st.error("E-mail não autorizado para acessar o dashboard.")
+                            st.error("❌ E-mail não autorizado para acessar o dashboard.")
                         else:
                             st.session_state.usuario_logado = True
                             st.session_state.email_usuario = email
-                            st.success("Login realizado com sucesso!")
+                            st.success("✅ Login realizado com sucesso!")
                             st.rerun()
 
 def processar_dados(empresa):
@@ -313,6 +332,12 @@ def render_page_comercial(df):
     prod_sel = st.sidebar.selectbox("📦 Produto", ["Todos"] + sorted(df['produto'].unique().tolist()))
     vend_sel = st.sidebar.selectbox("👤 Vendedor", ["Todos"] + sorted(df['vendedor'].unique().tolist()))
     sdr_sel = st.sidebar.selectbox("🎧 SDR", ["Todos"] + sorted(df['sdr'].unique().tolist()))
+    
+    st.sidebar.divider()
+    if st.sidebar.button("🚪 Sair", use_container_width=True):
+        st.session_state.usuario_logado = False
+        st.session_state.email_usuario = None
+        st.rerun()
 
     df_f = df_ano[df_ano['mes_nome'].isin(meses_sel)].copy()
     if prod_sel != "Todos": df_f = df_f[df_f['produto'] == prod_sel]
@@ -334,12 +359,6 @@ def render_page_comercial(df):
         if st.button("📋 Resumo Inadimplência", use_container_width=True):
             st.session_state.page = 'inadimplencia'
             st.rerun()
-
-    st.sidebar.divider()
-    if st.sidebar.button("🚪 Sair", use_container_width=True):
-        st.session_state.usuario_logado = False
-        st.session_state.email_usuario = None
-        st.rerun()
 
     st.title(f"📊 Resumo Comercial - {st.session_state.empresa}")
     
