@@ -4,20 +4,57 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import base64
+import hashlib
 
-st.set_page_config(layout="wide", page_title="Dashboard Comercial Estratégico", page_icon="📊")
+st.set_page_config(layout="wide", page_title="Dashboard Comercial Estratégico", page_icon="📊", initial_sidebar_state="collapsed")
 
 COLOR_PRIMARY = "#0B2A4E"
 COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
-COLOR_BG = "#F0F2F6"
+COLOR_BG = "#0A1E2E"
 COLOR_CHURN = "#E74C3C"
+
+st.markdown("""
+    <style>
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stMainBlockContainer"] {
+        background-color: #0A1E2E !important;
+        color: #FFFFFF !important;
+    }
+    [data-testid="stHeader"] {
+        background-color: #0A1E2E !important;
+    }
+    [data-testid="stToolbar"] {
+        display: none !important;
+    }
+    footer {
+        display: none !important;
+    }
+    .stApp > header {
+        background-color: #0A1E2E !important;
+    }
+    .stApp > header > div {
+        display: none !important;
+    }
+    a[href*="github"] {
+        display: none !important;
+    }
+    [data-testid="stDecoration"] {
+        display: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 if 'page' not in st.session_state:
     st.session_state.page = 'comercial'
 
 if 'empresa' not in st.session_state:
     st.session_state.empresa = 'VMC Tech'
+
+if 'usuario_logado' not in st.session_state:
+    st.session_state.usuario_logado = False
+
+if 'email_usuario' not in st.session_state:
+    st.session_state.email_usuario = None
 
 EMPRESAS = {
     'VMC Tech': {
@@ -36,78 +73,10 @@ EMPRESAS = {
     }
 }
 
-def get_base64_of_bin_file(bin_file):
-    try:
-        with open(bin_file, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except:
-        return None
+USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
 
-st.markdown(f"""
-    <style>
-    .main {{ background-color: {COLOR_BG}; }}
-    div[data-testid="stMetric"] {{
-        background-color: {COLOR_PRIMARY} !important;
-        padding: 10px 15px !important;
-        border-radius: 10px !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-        color: {COLOR_TEXT} !important;
-        min-width: 180px !important;
-    }}
-    div[data-testid="stMetricValue"] {{
-        font-size: 1.6rem !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        color: {COLOR_TEXT} !important;
-    }}
-    div[data-testid="stMetricLabel"] > div {{
-        color: {COLOR_TEXT} !important;
-        font-weight: bold !important;
-        font-size: 0.9rem !important;
-    }}
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetric"] {{
-        border: 2px solid {COLOR_CHURN} !important;
-    }}
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricLabel"] > div,
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricValue"] {{
-        color: {COLOR_CHURN} !important;
-    }}
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] > div {{
-        background-color: rgba(231, 76, 60, 0.2) !important;
-        color: {COLOR_CHURN} !important;
-        padding: 2px 8px !important;
-        border-radius: 15px !important;
-    }}
-    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] svg {{
-        fill: {COLOR_CHURN} !important;
-        stroke: {COLOR_CHURN} !important;
-    }}
-    [data-testid="stSidebar"] {{
-        background-color: {COLOR_PRIMARY} !important;
-    }}
-    [data-testid="stSidebar"] .stMarkdown p, 
-    [data-testid="stSidebar"] label, 
-    [data-testid="stSidebar"] .stExpander p,
-    [data-testid="stSidebar"] .stMultiSelect label {{
-        color: {COLOR_TEXT} !important;
-        font-weight: 600 !important;
-    }}
-    [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"],
-    [data-testid="stSidebar"] .stMultiSelect div[data-baseweb="select"] {{
-        background-color: #F8F9FA !important;
-        color: {COLOR_PRIMARY} !important;
-        border-radius: 5px !important;
-    }}
-    [data-testid="stSidebar"] .stExpander {{
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        border-radius: 8px !important;
-    }}
-    h1, h2, h3 {{ color: {COLOR_PRIMARY}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
-    </style>
-    """, unsafe_allow_html=True)
+def hash_senha(senha):
+    return hashlib.sha256(senha.encode()).hexdigest()
 
 @st.cache_data(ttl=600)
 def load_data(sheet_id, gid=None):
@@ -120,6 +89,15 @@ def load_data(sheet_id, gid=None):
         df.columns = df.columns.str.strip()
         return df
     except Exception as e:
+        return pd.DataFrame()
+
+def load_usuarios():
+    url = f"https://docs.google.com/spreadsheets/d/{USUARIOS_SHEET_ID}/export?format=csv"
+    try:
+        df = pd.read_csv(url )
+        df.columns = df.columns.str.strip()
+        return df
+    except:
         return pd.DataFrame()
 
 def parse_currency(series):
@@ -135,6 +113,68 @@ def parse_currency(series):
         try: return float(s)
         except: return 0.0
     return series.apply(clean_val)
+
+def render_login():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        try:
+            with open('logo_acelerar.png', 'rb') as f:
+                img_data = f.read()
+            img_base64 = base64.b64encode(img_data).decode()
+            st.markdown(f"""
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <img src="data:image/png;base64,{img_base64}" width="300">
+                </div>
+                """, unsafe_allow_html=True)
+        except:
+            st.markdown("<h1 style='text-align: center; color: #89CFF0;'>🔐 Acelerar.tech Dashboard</h1>", unsafe_allow_html=True)
+        
+        st.markdown("<h2 style='text-align: center; color: #FFFFFF;'>Acesso ao Dashboard Comercial</h2>", unsafe_allow_html=True)
+        
+        email = st.text_input("📧 E-mail", placeholder="seu.email@empresa.com", key="login_email")
+        senha = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha", key="login_senha")
+        
+        if st.button("🚀 Entrar", use_container_width=True):
+            if not email or not senha:
+                st.error("Por favor, preencha e-mail e senha.")
+            else:
+                df_usuarios = load_usuarios()
+                
+                if df_usuarios.empty:
+                    st.error("Erro ao carregar base de usuários.")
+                else:
+                    usuario = df_usuarios[df_usuarios['Email'].str.lower() == email.lower()]
+                    
+                    if usuario.empty:
+                        st.error("❌ E-mail não autorizado para acessar o dashboard.")
+                    else:
+                        senha_armazenada = usuario.iloc[0].get('Senha', '')
+                        
+                        if pd.isna(senha_armazenada) or senha_armazenada == '':
+                            st.warning("⚠️ Primeiro acesso detectado. Defina sua senha agora.")
+                            
+                            with st.form("form_primeira_senha"):
+                                nova_senha = st.text_input("🔐 Defina sua Senha", type="password", key="nova_senha")
+                                confirmar_senha = st.text_input("🔐 Confirme sua Senha", type="password", key="confirmar_senha")
+                                
+                                if st.form_submit_button("Confirmar Primeira Senha"):
+                                    if nova_senha != confirmar_senha:
+                                        st.error("As senhas não conferem.")
+                                    elif len(nova_senha) < 6:
+                                        st.error("A senha deve ter pelo menos 6 caracteres.")
+                                    else:
+                                        st.success("✅ Senha definida com sucesso! Faça login novamente.")
+                                        st.session_state.usuario_logado = False
+                        else:
+                            senha_hash = hash_senha(senha)
+                            if senha_hash == senha_armazenada:
+                                st.session_state.usuario_logado = True
+                                st.session_state.email_usuario = email
+                                st.success("✅ Login realizado com sucesso!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Senha incorreta.")
 
 def processar_dados(empresa):
     config = EMPRESAS[empresa]
@@ -179,13 +219,6 @@ def processar_dados(empresa):
     return df, df_cr
 
 def render_page_comercial(df):
-    logo_base64 = get_base64_of_bin_file('/home/ubuntu/logo_acelerar_tech.png')
-    if logo_base64:
-        st.sidebar.markdown(
-            f'<div style="text-align: center; margin-bottom: 20px;"><img src="data:image/png;base64,{logo_base64}" width="180"></div>',
-            unsafe_allow_html=True
-        )
-    
     st.sidebar.markdown("<h3 style='color: white; text-align: center;'>🏢 Seletor de Empresa</h3>", unsafe_allow_html=True)
     empresa_sel = st.sidebar.selectbox("Selecione a Empresa", list(EMPRESAS.keys()), index=list(EMPRESAS.keys()).index(st.session_state.empresa))
     if empresa_sel != st.session_state.empresa:
@@ -208,6 +241,12 @@ def render_page_comercial(df):
     prod_sel = st.sidebar.selectbox("📦 Produto", ["Todos"] + sorted(df['produto'].unique().tolist()))
     vend_sel = st.sidebar.selectbox("👤 Vendedor", ["Todos"] + sorted(df['vendedor'].unique().tolist()))
     sdr_sel = st.sidebar.selectbox("🎧 SDR", ["Todos"] + sorted(df['sdr'].unique().tolist()))
+    
+    st.sidebar.divider()
+    if st.sidebar.button("🚪 Sair", use_container_width=True):
+        st.session_state.usuario_logado = False
+        st.session_state.email_usuario = None
+        st.rerun()
 
     df_f = df_ano[df_ano['mes_nome'].isin(meses_sel)].copy()
     if prod_sel != "Todos": df_f = df_f[df_f['produto'] == prod_sel]
@@ -541,12 +580,17 @@ def render_page_inadimplencia(df_cr):
         mime="text/csv"
     )
 
-df_processed, df_contas_receber = processar_dados(st.session_state.empresa)
-
-if df_processed is not None:
-    if st.session_state.page == 'comercial':
-        render_page_comercial(df_processed)
-    else:
-        render_page_inadimplencia(df_contas_receber)
+if not st.session_state.usuario_logado:
+    render_login()
 else:
-    st.error("Erro ao carregar os dados.")
+    st.sidebar.markdown(f"<h4 style='color: white;'>👤 Usuário: {st.session_state.email_usuario}</h4>", unsafe_allow_html=True)
+    
+    df_processed, df_contas_receber = processar_dados(st.session_state.empresa)
+    
+    if df_processed is not None:
+        if st.session_state.page == 'comercial':
+            render_page_comercial(df_processed)
+        else:
+            render_page_inadimplencia(df_contas_receber)
+    else:
+        st.error("Erro ao carregar os dados.")
