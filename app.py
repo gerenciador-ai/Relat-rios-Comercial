@@ -401,6 +401,17 @@ def render_page_inadimplencia(df_cr):
             cpf_col = col
             break
     
+    nome_col = None
+    for col in df_cr_proc.columns:
+        if 'nome' in col.lower() and 'cliente' in col.lower():
+            nome_col = col
+            break
+    if not nome_col:
+        for col in df_cr_proc.columns:
+            if 'nome' in col.lower():
+                nome_col = col
+                break
+    
     if valor_col:
         df_cr_proc['valor_numerico'] = parse_currency(df_cr_proc[valor_col])
     else:
@@ -440,7 +451,7 @@ def render_page_inadimplencia(df_cr):
     st.divider()
     
     st.subheader("📊 Distribuição de Clientes por Faixa de Atraso")
-    col_rosca, col_info = st.columns([2, 1])
+    col_rosca, col_tabela = st.columns([1.2, 1.8])
     
     with col_rosca:
         aging_data = df_cr_proc[df_cr_proc['faixa_atraso'] != 'Sem Data'].groupby('faixa_atraso')[cpf_col if cpf_col else df_cr_proc.columns[0]].nunique().reset_index()
@@ -458,6 +469,39 @@ def render_page_inadimplencia(df_cr):
                      hole=0.4, color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY, '#FF6B6B', '#E74C3C'])
         fig.update_layout(xaxis_title=None, yaxis_title=None)
         st.plotly_chart(fig, use_container_width=True)
+    
+    with col_tabela:
+        df_aging_cliente = df_cr_proc[df_cr_proc['faixa_atraso'] != 'Sem Data'].copy()
+        
+        if nome_col:
+            df_aging_cliente = df_aging_cliente.groupby(nome_col).agg({
+                'valor_numerico': 'sum',
+                'data_vencimento': 'count'
+            }).reset_index()
+            df_aging_cliente.columns = ['Cliente', 'Valor Total', 'Mensalidades']
+        else:
+            df_aging_cliente = df_aging_cliente.groupby(cpf_col if cpf_col else df_aging_cliente.columns[0]).agg({
+                'valor_numerico': 'sum',
+                'data_vencimento': 'count'
+            }).reset_index()
+            df_aging_cliente.columns = ['Cliente', 'Valor Total', 'Mensalidades']
+        
+        def faixa_por_qtd(qtd):
+            if qtd == 1:
+                return '0-30 dias'
+            elif qtd == 2:
+                return '31-60 dias'
+            elif qtd == 3:
+                return '61-90 dias'
+            else:
+                return '>90 dias'
+        
+        df_aging_cliente['Faixa de Atraso'] = df_aging_cliente['Mensalidades'].apply(faixa_por_qtd)
+        df_aging_cliente['Valor Total'] = df_aging_cliente['Valor Total'].apply(lambda x: f"R$ {int(x):,}".replace(",", "."))
+        df_aging_cliente = df_aging_cliente[['Cliente', 'Mensalidades', 'Valor Total', 'Faixa de Atraso']]
+        df_aging_cliente.columns = ['Cliente', 'Mensalidades em Aberto', 'Valor Total em Aberto', 'Dias em Atraso']
+        
+        st.dataframe(df_aging_cliente, use_container_width=True, hide_index=True)
     
     st.divider()
     
