@@ -33,11 +33,21 @@ st.markdown(f"""
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         color: {COLOR_TEXT} !important;
+        margin-bottom: 10px;
     }}
     .stMetric label {{ color: {COLOR_TEXT} !important; font-weight: bold !important; }}
     .stMetric div[data-testid="stMetricValue"] {{ color: {COLOR_TEXT} !important; font-size: 1.8rem !important; }}
-    .stMetric div[data-testid="stMetricDelta"] {{ color: {COLOR_SECONDARY} !important; }}
     
+    /* Estilo específico para delta negativo (Churn) */
+    .stMetric div[data-testid="stMetricDelta"] {{ 
+        color: #E74C3C !important; 
+        font-weight: bold !important;
+    }}
+    .stMetric div[data-testid="stMetricDelta"] svg {{ 
+        fill: #E74C3C !important; 
+        transform: rotate(180deg);
+    }}
+
     h1, h2, h3 {{ color: {COLOR_PRIMARY}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
     
     [data-testid="stSidebar"] {{ background-color: {COLOR_PRIMARY}; color: {COLOR_TEXT}; }}
@@ -51,6 +61,8 @@ VENDAS_ID = "1df7wNT1XQaiVK38vNdjbQudXkeH-lHTZWoYQ9gikZ0M"
 VENDAS_GID = "1202307787"
 CANCELADOS_ID = "1GDU6qVJ9Gf9C9lwHx2KwOiTltyeUPWhD_y3ODUczuTw"
 CANCELADOS_GID = "606807719"
+CONTAS_RECEBER_ID = "1Nqmn2c9p0QFu8LFIqFQ0EBxA8klHFUsVjAW15la-Fjg"
+CONTAS_RECEBER_GID = "0" # GID padrão para a primeira aba
 
 @st.cache_data(ttl=600)
 def load_data(sheet_id, gid=None):
@@ -81,7 +93,9 @@ def parse_currency(series):
 def processar_dados():
     df_v = load_data(VENDAS_ID, VENDAS_GID)
     df_c = load_data(CANCELADOS_ID, CANCELADOS_GID)
-    if df_v.empty: return None
+    df_cr = load_data(CONTAS_RECEBER_ID, CONTAS_RECEBER_GID)
+
+    if df_v.empty: return None, None
 
     df = pd.DataFrame()
     df['vendedor'] = df_v['Vendedor'].fillna("N/A")
@@ -115,11 +129,13 @@ def processar_dados():
         canc_cnpjs = df_c['CNPJ do Cliente'].astype(str).str.replace(r'\D', '', regex=True).unique()
         df.loc[df['cnpj'].isin(canc_cnpjs), 'status'] = 'Cancelada'
     
-    return df
+    return df, df_cr
 
 # --- UI ---
-df = processar_dados()
-if df is not None:
+df_processed, df_contas_receber = processar_dados()
+if df_processed is not None:
+    df = df_processed
+
     # Sidebar com Logotipo
     logo_base64 = get_base64_of_bin_file('/home/ubuntu/logo_acelerar_tech.png')
     if logo_base64:
@@ -162,20 +178,29 @@ if df is not None:
 
     st.title("📊 Dashboard Comercial Estratégico")
     
-    c1, c2, c3 = st.columns(3)
-    c1.metric("MRR Conquistado", f"R$ {mrr_conq:,.2f}")
-    c2.metric("MRR Ativo (Net)", f"R$ {mrr_conq - mrr_perd:,.2f}")
-    c3.metric("MRR Perdido (Churn)", f"R$ {mrr_perd:,.2f}", delta=f"{churn_p:.1f}% do Conquistado", delta_color="inverse")
+    # Otimização do layout dos cards
+    col_kpis_1 = st.columns(5)
+
+    with col_kpis_1[0]:
+        st.metric("MRR Conquistado", f"R$ {mrr_conq:,.2f}")
+    with col_kpis_1[1]:
+        st.metric("MRR Ativo (Net)", f"R$ {mrr_conq - mrr_perd:,.2f}")
+    with col_kpis_1[2]:
+        st.metric("MRR Perdido (Churn)", f"R$ {mrr_perd:,.2f}", delta=f"{churn_p:.1f}% do Conquistado", delta_color="inverse")
+    with col_kpis_1[3]:
+        st.metric("Total de Upsell", f"R$ {upsell_v:,.2f}", delta=f"{upsell_q} eventos")
+    with col_kpis_1[4]:
+        st.metric("Ticket Médio", f"R$ {tkt_med:,.2f}")
     
-    c4, c5, c6 = st.columns(3)
-    c4.metric("Total de Upsell", f"R$ {upsell_v:,.2f}", delta=f"{upsell_q} eventos")
-    c5.metric("Ticket Médio", f"R$ {tkt_med:,.2f}")
-    c6.metric("Adesão Total", f"R$ {df_f['adesao'].sum():,.2f}")
-    
-    c7, c8, c9 = st.columns(3)
-    c7.metric("Clientes fechado (no periodo)", cl_fech)
-    c8.metric("Clientes Cancelados (no periodo)", cl_canc)
-    c9.metric("Total Clientes Ativos (Base)", base_ativa)
+    col_kpis_2 = st.columns(4)
+    with col_kpis_2[0]:
+        st.metric("Adesão Total", f"R$ {df_f['adesao'].sum():,.2f}")
+    with col_kpis_2[1]:
+        st.metric("Clientes fechado (no periodo)", cl_fech)
+    with col_kpis_2[2]:
+        st.metric("Clientes Cancelados (no periodo)", cl_canc)
+    with col_kpis_2[3]:
+        st.metric("Total Clientes Ativos (Base)", base_ativa)
 
     st.divider()
     
@@ -244,8 +269,39 @@ if df is not None:
         fig.update_layout(xaxis_title=None, yaxis_title=None)
         st.plotly_chart(fig, use_container_width=True)
 
+    st.divider()
+
+    # Rankings de Vendedores
+    st.subheader("🏆 Rankings de Vendedores")
+    col_rank1, col_rank2 = st.columns(2)
+
+    with col_rank1:
+        df_rank_contratos = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['cliente'].count().sort_values(ascending=False).reset_index()
+        df_rank_contratos.columns = ['Vendedor', 'Contratos Fechados']
+        fig_contratos = px.bar(df_rank_contratos.head(10), x='Contratos Fechados', y='Vendedor', orientation='h', 
+                               title='Top Vendedores por Contratos Fechados', color_discrete_sequence=[COLOR_PRIMARY])
+        fig_contratos.update_layout(yaxis={'categoryorder':'total ascending'}, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_contratos, use_container_width=True)
+
+    with col_rank2:
+        df_rank_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=False).reset_index()
+        df_rank_mrr.columns = ['Vendedor', 'MRR Conquistado']
+        fig_mrr = px.bar(df_rank_mrr.head(10), x='MRR Conquistado', y='Vendedor', orientation='h', 
+                         title='Top Vendedores por MRR Conquistado', color_discrete_sequence=[COLOR_SECONDARY])
+        fig_mrr.update_layout(yaxis={'categoryorder':'total ascending'}, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_mrr, use_container_width=True)
+
+    st.divider()
+
     st.subheader("📋 Detalhamento")
     st.dataframe(df_f[['data', 'cliente', 'vendedor', 'produto', 'status', 'mrr', 'upgrade', 'adesao']].sort_values('data', ascending=False), use_container_width=True)
+
+    # Verificação da nova planilha
+    if df_contas_receber is not None and not df_contas_receber.empty:
+        with st.expander("🔍 Verificação: Dados Contas a Receber"):
+            st.dataframe(df_contas_receber.head())
+    else:
+        st.info("Conexão estabelecida com 'Contas a Receber', aguardando dados.")
 
 else:
     st.error("Nenhum dado válido encontrado para os filtros selecionados.")
