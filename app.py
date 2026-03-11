@@ -5,8 +5,9 @@ import plotly.graph_objects as go
 from datetime import datetime
 import base64
 import hashlib
+import os
 
-st.set_page_config(layout="wide", page_title="Dashboard Comercial Estratégico", page_icon="📊", initial_sidebar_state="collapsed")
+st.set_page_config(layout="wide", page_title="Dashboard Comercial Estratégico - Acelerar.tech", page_icon="📊", initial_sidebar_state="collapsed")
 
 COLOR_PRIMARY = "#0B2A4E"
 COLOR_SECONDARY = "#89CFF0"
@@ -16,12 +17,22 @@ COLOR_CHURN = "#E74C3C"
 
 st.markdown("""
     <style>
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stMainBlockContainer"] {
+    * {
+        margin: 0;
+        padding: 0;
+    }
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {
         background-color: #0A1E2E !important;
         color: #FFFFFF !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #0B2A4E !important;
     }
     [data-testid="stHeader"] {
         background-color: #0A1E2E !important;
+        display: none !important;
     }
     [data-testid="stToolbar"] {
         display: none !important;
@@ -30,16 +41,90 @@ st.markdown("""
         display: none !important;
     }
     .stApp > header {
-        background-color: #0A1E2E !important;
-    }
-    .stApp > header > div {
-        display: none !important;
-    }
-    a[href*="github"] {
         display: none !important;
     }
     [data-testid="stDecoration"] {
         display: none !important;
+    }
+    a[href*="github"], a[href*="deploy"], a[href*="settings"] {
+        display: none !important;
+    }
+    div[data-testid="stMetric"] {
+        background-color: #0B2A4E !important;
+        padding: 10px 15px !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important;
+        color: #FFFFFF !important;
+        min-width: 180px !important;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 1.6rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        color: #FFFFFF !important;
+    }
+    div[data-testid="stMetricLabel"] > div {
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+        font-size: 0.9rem !important;
+    }
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetric"] {
+        border: 2px solid #E74C3C !important;
+    }
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricLabel"] > div,
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricValue"] {
+        color: #E74C3C !important;
+    }
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] > div {
+        background-color: rgba(231, 76, 60, 0.2) !important;
+        color: #E74C3C !important;
+        padding: 2px 8px !important;
+        border-radius: 15px !important;
+    }
+    div[data-testid="column"]:nth-of-type(3) div[data-testid="stMetricDelta"] svg {
+        fill: #E74C3C !important;
+        stroke: #E74C3C !important;
+    }
+    [data-testid="stSidebar"] .stMarkdown p, 
+    [data-testid="stSidebar"] label, 
+    [data-testid="stSidebar"] .stExpander p,
+    [data-testid="stSidebar"] .stMultiSelect label {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"],
+    [data-testid="stSidebar"] .stMultiSelect div[data-baseweb="select"] {
+        background-color: #F8F9FA !important;
+        color: #0B2A4E !important;
+        border-radius: 5px !important;
+    }
+    [data-testid="stSidebar"] .stExpander {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 8px !important;
+    }
+    h1, h2, h3 {
+        color: #0B2A4E !important;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    }
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+    .login-card {
+        background-color: rgba(10, 30, 46, 0.95) !important;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        width: 100%;
+        max-width: 400px;
+        border: 2px solid #89CFF0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -74,9 +159,7 @@ EMPRESAS = {
 }
 
 USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
-
-def hash_senha(senha):
-    return hashlib.sha256(senha.encode()).hexdigest()
+SENHA_MESTRA = 'Acelerar@2026'
 
 @st.cache_data(ttl=600)
 def load_data(sheet_id, gid=None):
@@ -115,66 +198,74 @@ def parse_currency(series):
     return series.apply(clean_val)
 
 def render_login():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        try:
+    img_base64 = ""
+    try:
+        if os.path.exists('logo_acelerar.png'):
             with open('logo_acelerar.png', 'rb') as f:
                 img_data = f.read()
             img_base64 = base64.b64encode(img_data).decode()
-            st.markdown(f"""
-                <div style="text-align: center; margin-bottom: 40px;">
-                    <img src="data:image/png;base64,{img_base64}" width="300">
-                </div>
-                """, unsafe_allow_html=True)
-        except:
-            st.markdown("<h1 style='text-align: center; color: #89CFF0;'>🔐 Acelerar.tech Dashboard</h1>", unsafe_allow_html=True)
+    except:
+        pass
+    
+    if img_base64:
+        st.markdown(f"""
+            <style>
+            .login-bg {{
+                background-image: url('data:image/png;base64,{img_base64}');
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: -1;
+            }}
+            </style>
+            <div class="login-bg"></div>
+            """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("""
+            <div style="text-align: center; margin-top: 80px; margin-bottom: 40px;">
+                <h1 style="color: #89CFF0; font-size: 2.5rem; font-weight: bold;">🔐 Dashboard Comercial</h1>
+                <p style="color: #FFFFFF; font-size: 1.1rem; margin-top: 10px;">Acelerar.tech - Holding</p>
+            </div>
+            """, unsafe_allow_html=True)
         
-        st.markdown("<h2 style='text-align: center; color: #FFFFFF;'>Acesso ao Dashboard Comercial</h2>", unsafe_allow_html=True)
-        
-        email = st.text_input("📧 E-mail", placeholder="seu.email@empresa.com", key="login_email")
-        senha = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha", key="login_senha")
-        
-        if st.button("🚀 Entrar", use_container_width=True):
-            if not email or not senha:
-                st.error("Por favor, preencha e-mail e senha.")
-            else:
-                df_usuarios = load_usuarios()
-                
-                if df_usuarios.empty:
-                    st.error("Erro ao carregar base de usuários.")
+        with st.form("form_login"):
+            email = st.text_input("📧 E-mail", placeholder="seu.email@empresa.com", key="login_email")
+            senha = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha", key="login_senha")
+            
+            submit = st.form_submit_button("🚀 Entrar", use_container_width=True)
+            
+            if submit:
+                if not email or not senha:
+                    st.error("❌ Por favor, preencha e-mail e senha.")
+                elif senha != SENHA_MESTRA:
+                    st.error("❌ Senha incorreta.")
                 else:
-                    usuario = df_usuarios[df_usuarios['Email'].str.lower() == email.lower()]
+                    df_usuarios = load_usuarios()
                     
-                    if usuario.empty:
-                        st.error("❌ E-mail não autorizado para acessar o dashboard.")
+                    if df_usuarios.empty:
+                        st.error("❌ Erro ao carregar base de usuários.")
                     else:
-                        senha_armazenada = usuario.iloc[0].get('Senha', '')
+                        usuario = df_usuarios[df_usuarios['Email'].str.lower() == email.lower()]
                         
-                        if pd.isna(senha_armazenada) or senha_armazenada == '':
-                            st.warning("⚠️ Primeiro acesso detectado. Defina sua senha agora.")
-                            
-                            with st.form("form_primeira_senha"):
-                                nova_senha = st.text_input("🔐 Defina sua Senha", type="password", key="nova_senha")
-                                confirmar_senha = st.text_input("🔐 Confirme sua Senha", type="password", key="confirmar_senha")
-                                
-                                if st.form_submit_button("Confirmar Primeira Senha"):
-                                    if nova_senha != confirmar_senha:
-                                        st.error("As senhas não conferem.")
-                                    elif len(nova_senha) < 6:
-                                        st.error("A senha deve ter pelo menos 6 caracteres.")
-                                    else:
-                                        st.success("✅ Senha definida com sucesso! Faça login novamente.")
-                                        st.session_state.usuario_logado = False
+                        if usuario.empty:
+                            st.error("❌ E-mail não autorizado para acessar o dashboard.")
                         else:
-                            senha_hash = hash_senha(senha)
-                            if senha_hash == senha_armazenada:
-                                st.session_state.usuario_logado = True
-                                st.session_state.email_usuario = email
-                                st.success("✅ Login realizado com sucesso!")
-                                st.rerun()
-                            else:
-                                st.error("❌ Senha incorreta.")
+                            st.session_state.usuario_logado = True
+                            st.session_state.email_usuario = email
+                            st.success("✅ Login realizado com sucesso!")
+                            st.rerun()
 
 def processar_dados(empresa):
     config = EMPRESAS[empresa]
