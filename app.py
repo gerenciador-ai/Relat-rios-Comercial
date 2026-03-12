@@ -24,7 +24,7 @@ def get_base64_of_bin_file(bin_file):
     except:
         return None
 
-# Estilização CSS Customizada - VERSÃO CONTRASTE PREMIUM
+# Estilização CSS Customizada - VERSÃO CONTRASTE PREMIUM INTEGRAL
 st.markdown(f"""
     <style>
     .main {{ background-color: {COLOR_BG}; }}
