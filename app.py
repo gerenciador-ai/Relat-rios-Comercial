@@ -132,7 +132,7 @@ st.markdown(f"""
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        min-height: 45vh;
+        min-height: 40vh;
         background-color: transparent !important;
         margin-top: 5vh;
         text-align: center;
@@ -238,7 +238,7 @@ def render_login():
         </div>
         """, unsafe_allow_html=True)
     
-    # Inserção do Logo da Acelerar centralizado e redimensionado
+    # Inserção do Logo da Acelerar centralizado e redimensionado via width
     col_img1, col_img2, col_img3 = st.columns([1, 0.5, 1])
     with col_img2:
         st.image(LOGOS["ACELERAR_LOGIN"], use_container_width=True)
@@ -301,7 +301,7 @@ else:
     
     # 2. RENDERIZAÇÃO DA SIDEBAR (GARANTIDA COM TODOS OS FILTROS)
     with st.sidebar:
-        # Logo Acelerar fixo no topo da sidebar e redimensionado
+        # Logo Acelerar fixo no topo da sidebar e redimensionado via width
         st.image(LOGOS["ACELERAR_SIDEBAR"], width=160)
         st.markdown(f"<h4 style='color: white;'>👤 Usuário: {st.session_state.email_usuario}</h4>", unsafe_allow_html=True)
         st.divider()
@@ -361,8 +361,8 @@ else:
                     st.session_state.page = 'inadimplencia'
                     st.rerun()
 
-            # Logo da Unidade redimensionado acima do título
-            st.image(logo_unidade_url, height=80)
+            # Logo da Unidade redimensionado via width acima do título
+            st.image(logo_unidade_url, width=150)
             st.title(f"📊 Resumo Comercial - {st.session_state.empresa}")
             
             # KPIs
@@ -468,8 +468,8 @@ else:
                     st.session_state.page = 'comercial'
                     st.rerun()
             
-            # Logo da Unidade redimensionado acima do título
-            st.image(logo_unidade_url, height=80)
+            # Logo da Unidade redimensionado via width acima do título
+            st.image(logo_unidade_url, width=150)
             st.title(f"📋 Inadimplência - {st.session_state.empresa}")
             
             if df_cr.empty:
