@@ -105,7 +105,7 @@ st.markdown("""
         border-radius: 8px !important;
     }
     h1, h2, h3 {
-        color: #0B2A4E !important;
+        color: #89CFF0 !important;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     }
     .login-container {
