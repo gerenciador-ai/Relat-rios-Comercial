@@ -20,6 +20,17 @@ COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 COLOR_CHURN = "#E74C3C"
 
+# --- IDs DO GOOGLE DRIVE (LOGOS) ---
+LOGOS = {
+    "ACELERAR_LOGIN": "1JuW0zxEWE_EQ8XgTeTIqtJCFBY2rlw4e",  # Acelerar_Opção2
+    "ACELERAR_SIDEBAR": "1bg9jbDLyeihNWaSA8E5fD65wO7euFRds", # Acelerar_Opção1
+    "VMC_TECH": "1QykO1QvIcgmC1_c3P-74N2LyKfreguyu",         # VMCTech_Opção1
+    "VICTEC": "1dxiBgVft09UB_L7Ai9c3G4yZwGVVRv86"            # Victec_Opção2
+}
+
+def get_drive_url(file_id):
+    return f"https://drive.google.com/uc?export=download&id={file_id}"
+
 # Estilização CSS Customizada - VERSÃO EXECUTIVA DEFINITIVA
 st.markdown(f"""
     <style>
@@ -111,15 +122,34 @@ st.markdown(f"""
     footer {{ display: none !important; }}
     [data-testid="stDecoration"] {{ display: none !important; }}
     
-    /* Login Styles - LIMPEZA RADICAL (SEM QUADRADO/CARD) */
+    /* Login Styles - AJUSTE PARA ENQUADRAMENTO (SEM ROLAGEM) */
     .login-container {{
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        min-height: 40vh;
+        min-height: 50vh;
         background-color: transparent !important;
-        margin-top: 10vh;
+        margin-top: 5vh;
+        text-align: center;
+    }}
+    
+    .login-title {{
+        color: {COLOR_SECONDARY};
+        font-size: 2.8rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }}
+    
+    .login-subtitle {{
+        color: {COLOR_TEXT};
+        opacity: 0.9;
+        font-size: 1.2rem;
+        margin-bottom: 25px;
+    }}
+
+    .login-logo {{
+        margin-bottom: 30px;
     }}
     
     /* Estilo dos campos de input no login */
@@ -127,6 +157,12 @@ st.markdown(f"""
         border: none !important;
         padding: 0 !important;
         background-color: transparent !important;
+    }}
+
+    /* Ajuste de Padding para evitar rolagem */
+    .block-container {{
+        padding-top: 2rem !important;
+        padding-bottom: 1rem !important;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -195,11 +231,21 @@ def parse_currency(series):
     return series.apply(clean_val)
 
 def render_login():
-    # RENDERIZAÇÃO LIMPA: APENAS TEXTO E CAMPOS (COMANDO 1)
+    # RENDERIZAÇÃO COM LOGO ACELERAR E TÍTULO (CONFORME SOLICITADO)
     st.markdown(f"""
         <div class="login-container">
-            <h1 style="color: {COLOR_SECONDARY}; font-size: 2.5rem; margin-bottom: 5px; text-align: center;">Dashboard Comercial</h1>
-            <p style="color: {COLOR_TEXT}; opacity: 0.9; font-size: 1.2rem; margin-bottom: 40px; text-align: center;">Acelerar.tech - Holding</p>
+            <p class="login-title">Dashboard Comercial</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Inserção do Logo da Acelerar centralizado
+    col_img1, col_img2, col_img3 = st.columns([1, 0.6, 1])
+    with col_img2:
+        st.image(get_drive_url(LOGOS["ACELERAR_LOGIN"]), use_container_width=True)
+    
+    st.markdown(f"""
+        <div class="login-container" style="margin-top: 0; min-height: auto;">
+            <p class="login-subtitle">Acelerar.tech - Holding</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -255,6 +301,8 @@ else:
     
     # 2. RENDERIZAÇÃO DA SIDEBAR (GARANTIDA COM TODOS OS FILTROS)
     with st.sidebar:
+        # Logo Acelerar fixo no topo da sidebar
+        st.image(get_drive_url(LOGOS["ACELERAR_SIDEBAR"]), use_container_width=True)
         st.markdown(f"<h4 style='color: white;'>👤 Usuário: {st.session_state.email_usuario}</h4>", unsafe_allow_html=True)
         st.divider()
         
@@ -294,6 +342,9 @@ else:
             st.session_state.usuario_logado = False
             st.rerun()
 
+    # Lógica de Logo Dinâmico da Unidade
+    logo_unidade_id = LOGOS["VMC_TECH"] if st.session_state.empresa == "VMC Tech" else LOGOS["VICTEC"]
+
     # 3. RENDERIZAÇÃO DAS PÁGINAS
     if df_p is not None:
         if st.session_state.page == 'comercial':
@@ -310,6 +361,8 @@ else:
                     st.session_state.page = 'inadimplencia'
                     st.rerun()
 
+            # Logo da Unidade acima do título
+            st.image(get_drive_url(logo_unidade_id), width=150)
             st.title(f"📊 Resumo Comercial - {st.session_state.empresa}")
             
             # KPIs
@@ -408,13 +461,15 @@ else:
             st.dataframe(df_f[['data', 'cliente', 'vendedor', 'sdr', 'produto', 'status', 'mrr', 'upgrade', 'adesao']].sort_values('data', ascending=False), use_container_width=True)
         
         else:
-            # PÁGINA DE INADIMPLÊNCIA (RESTAURAÇÃO COMPLETA - COMANDO 2)
+            # PÁGINA DE INADIMPLÊNCIA
             col_nav_left, col_nav_right = st.columns([0.8, 0.2])
             with col_nav_right:
                 if st.button("📊 Comercial", use_container_width=True):
                     st.session_state.page = 'comercial'
                     st.rerun()
-                    
+            
+            # Logo da Unidade acima do título
+            st.image(get_drive_url(logo_unidade_id), width=150)
             st.title(f"📋 Inadimplência - {st.session_state.empresa}")
             
             if df_cr.empty:
@@ -463,17 +518,22 @@ else:
                     fig.update_layout(font=dict(color='white'), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
                     st.plotly_chart(fig, use_container_width=True)
                 with col_tabela:
-                    # RESTAURAÇÃO DO TÍTULO E COLUNAS DA TABELA (COMANDO 2)
                     st.markdown("### 📋 Resumo por Cliente")
                     df_aging_cliente = df_cr_proc[df_cr_proc['faixa_atraso'] != 'Sem Data'].groupby(nome_col if nome_col else (cpf_col if cpf_col else df_cr_proc.columns[0])).agg({'valor_numerico': 'sum', 'data_vencimento': 'count'}).reset_index()
                     df_aging_cliente.columns = ['Cliente', 'Valor Total', 'Mensalidades']
-                    # Adicionando coluna de Faixa na tabela de resumo
                     df_aging_cliente['Faixa de Atraso'] = df_aging_cliente['Mensalidades'].apply(lambda x: '0-30 dias' if x==1 else ('31-60 dias' if x==2 else ('61-90 dias' if x==3 else '>90 dias')))
                     st.dataframe(df_aging_cliente.sort_values(by='Mensalidades', ascending=False), use_container_width=True, hide_index=True)
                 
                 st.divider()
-                # RESTAURAÇÃO DA TABELA DE DETALHAMENTO COMPLETA
                 st.subheader("📋 Detalhamento de Títulos")
                 st.dataframe(df_cr_proc[[venc_col, cpf_col, nome_col, valor_col, 'faixa_atraso']].sort_values(by=venc_col), use_container_width=True)
     else:
         st.error("Erro ao carregar os dados das planilhas.")
+
+# Rodapé Dinâmico
+st.markdown("---")
+st.markdown(f"""
+    <div style='text-align: center; color: gray; font-size: 0.8rem;'>
+        © {datetime.now().year} Acelerar.tech - Sistema de Inteligência Comercial | Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}
+    </div>
+""", unsafe_allow_html=True)
