@@ -17,10 +17,7 @@ COLOR_CHURN = "#E74C3C"
 
 st.markdown("""
     <style>
-    * {
-        margin: 0;
-        padding: 0;
-    }
+    
     html, body, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {
         background-color: #0A1E2E !important;
         color: #FFFFFF !important;
@@ -28,12 +25,15 @@ st.markdown("""
         height: 100% !important;
     }
     [data-testid="stSidebar"] {
-        background-color: #0B2A4E !important;
-    }
+    background-color: #0B2A4E !important;
+    min-width: 250px !important;
+}
     [data-testid="stHeader"] {
-        background-color: #0A1E2E !important;
-        display: none !important;
-    }
+    background-color: rgba(0,0,0,0) !important; /* Transparente */
+}
+.stApp > header {
+    background-color: rgba(0,0,0,0) !important;
+}
     [data-testid="stToolbar"] {
         display: none !important;
     }
