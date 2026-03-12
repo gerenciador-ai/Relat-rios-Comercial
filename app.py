@@ -6,7 +6,7 @@ from datetime import datetime
 import base64
 import os
 
-# Configuração da página - Estilo Sênior Premium (Alterado para expanded)
+# Configuração da página - Estilo Sênior Premium (Layout Wide e Sidebar Expansível)
 st.set_page_config(
     layout="wide", 
     page_title="Dashboard Comercial Estratégico - Acelerar.tech", 
@@ -20,12 +20,18 @@ COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 COLOR_CHURN = "#E74C3C"
 
-# Estilização CSS Customizada - VERSÃO EXECUTIVA PREMIUM CORRIGIDA
+# Estilização CSS Customizada - VERSÃO EXECUTIVA V4 (CORREÇÃO DE LAYOUT FLUIDO)
 st.markdown(f"""
     <style>
+    /* Fundo Principal */
     .main {{ background-color: {COLOR_BG}; }}
     
-    /* Estilo Base dos Cards */
+    /* Correção de Layout: Garantir que a tela expanda quando a sidebar recolher */
+    [data-testid="stSidebar"] {{
+        background-color: {COLOR_PRIMARY} !important;
+    }}
+    
+    /* Estilo Base dos Cards de KPI */
     div[data-testid="stMetric"] {{
         background-color: {COLOR_PRIMARY} !important;
         padding: 10px 15px !important;
@@ -72,16 +78,7 @@ st.markdown(f"""
         stroke: {COLOR_CHURN} !important;
     }}
     
-    /* Estilo da Sidebar - CORRIGIDO PARA NÃO OCULTAR */
-    [data-testid="stSidebar"] {{
-        background-color: {COLOR_PRIMARY} !important;
-        min-width: 300px !important;
-    }}
-    
-    [data-testid="stSidebarNav"] {{
-        background-color: transparent !important;
-    }}
-    
+    /* Estilo dos Elementos da Sidebar */
     [data-testid="stSidebar"] .stMarkdown p, 
     [data-testid="stSidebar"] label, 
     [data-testid="stSidebar"] .stExpander p,
@@ -109,12 +106,12 @@ st.markdown(f"""
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     }}
     
-    /* White Label - Ocultar APENAS elementos desnecessários, mantendo a Sidebar funcional */
+    /* White Label - Limpeza de UI */
     header[data-testid="stHeader"] {{ background: transparent !important; }}
     footer {{ display: none !important; }}
     [data-testid="stDecoration"] {{ display: none !important; }}
     
-    /* Login Styles */
+    /* Login Styles - SEM IMAGEM */
     .login-container {{
         display: flex;
         justify-content: center;
@@ -199,17 +196,9 @@ def parse_currency(series):
     return series.apply(clean_val)
 
 def render_login():
-    img_base64 = ""
-    try:
-        if os.path.exists('Acelerar-Identidade-Visual.png'):
-            with open('Acelerar-Identidade-Visual.png', 'rb') as f:
-                img_base64 = base64.b64encode(f.read()).decode()
-    except: pass
-    
     st.markdown(f"""
         <div class="login-container">
             <div class="login-card">
-                {"<img src='data:image/png;base64," + img_base64 + "' style='width: 150px; margin-bottom: 20px;'>" if img_base64 else ""}
                 <h1 style="color: {COLOR_SECONDARY}; font-size: 1.8rem; margin-bottom: 10px;">Dashboard Comercial</h1>
                 <p style="color: {COLOR_TEXT}; opacity: 0.8; margin-bottom: 30px;">Acelerar.tech - Holding</p>
             </div>
