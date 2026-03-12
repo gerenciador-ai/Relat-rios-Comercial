@@ -168,7 +168,7 @@ def load_data(sheet_id, gid=None):
     else:
         url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     try:
-        df = pd.read_csv(url  )
+        df = pd.read_csv(url )
         df.columns = df.columns.str.strip()
         return df
     except Exception as e:
@@ -177,7 +177,7 @@ def load_data(sheet_id, gid=None):
 def load_usuarios():
     url = f"https://docs.google.com/spreadsheets/d/{USUARIOS_SHEET_ID}/export?format=csv"
     try:
-        df = pd.read_csv(url  )
+        df = pd.read_csv(url )
         df.columns = df.columns.str.strip()
         return df
     except:
@@ -440,16 +440,14 @@ def render_page_comercial(df):
     with col8:
         df_vc = df_f[df_f['status'] == "Confirmada"].groupby("vendedor")["cliente"].count().reset_index().sort_values("cliente", ascending=False)
         fig = px.pie(df_vc, names="vendedor", values="cliente", title="Top Vendedores (Contratos)", hole=0.4, color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY])
-        fig.update_traces(textinfo="label+value", textposition="inside", texttemplate="%{label}  
-%{value}")
+        fig.update_traces(textinfo="label+value", textposition="inside", texttemplate="%{label}<br>%{value}")
         fig.update_layout(showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color=COLOR_TEXT)
         st.plotly_chart(fig, use_container_width=True)
 
     with col9:
         df_vm = df_f[df_f['status'] == "Confirmada"].groupby("vendedor")["mrr"].sum().reset_index().sort_values("mrr", ascending=False)
         fig = px.pie(df_vm, names="vendedor", values="mrr", title="Top Vendedores (MRR)", hole=0.4, color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY])
-        fig.update_traces(textinfo="label+value", textposition="inside", texttemplate="%{label}  
-R$ %{value:,.2f}")
+        fig.update_traces(textinfo="label+value", textposition="inside", texttemplate="%{label}<br>R$ %{value:,.2f}")
         fig.update_layout(showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color=COLOR_TEXT)
         st.plotly_chart(fig, use_container_width=True)
 
