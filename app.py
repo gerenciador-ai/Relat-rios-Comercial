@@ -105,7 +105,7 @@ st.markdown("""
         border-radius: 8px !important;
     }
     h1, h2, h3 {
-        color: #0B2A4E !important;
+        color: #89CFF0 !important;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     }
     .login-container {
@@ -439,7 +439,7 @@ def render_page_comercial(df):
     
     with col7:
         fig = px.pie(df_f, names='produto', values='mrr', title="Receita por Produto", hole=0.4, color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY, '#1A3A5A', '#2E5A88'])
-        fig.update_layout(xaxis_title=None, yaxis_title=None)
+        fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'))
         st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
@@ -597,7 +597,7 @@ def render_page_inadimplencia(df_cr):
         
         fig = px.pie(aging_data, values='Quantidade', names='Label', title="Clientes por Faixa de Atraso", 
                      hole=0.4, color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY, '#FF6B6B', '#E74C3C'])
-        fig.update_layout(xaxis_title=None, yaxis_title=None)
+        fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'))
         st.plotly_chart(fig, use_container_width=True)
     
     with col_tabela:
@@ -630,6 +630,8 @@ def render_page_inadimplencia(df_cr):
         df_aging_cliente['Valor Total'] = df_aging_cliente['Valor Total'].apply(lambda x: f"R$ {int(x):,}".replace(",", "."))
         df_aging_cliente = df_aging_cliente[['Cliente', 'Mensalidades', 'Valor Total', 'Faixa de Atraso']]
         df_aging_cliente.columns = ['Cliente', 'Mensalidades em Aberto', 'Valor Total em Aberto', 'Dias em Atraso']
+
+        df_aging_cliente = df_aging_cliente.sort_values(by='Mensalidades em Aberto', ascending=False)
         
         st.dataframe(df_aging_cliente, use_container_width=True, hide_index=True)
     
