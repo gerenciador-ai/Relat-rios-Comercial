@@ -7,7 +7,7 @@ import base64
 import hashlib
 import os
 
-st.set_page_config(layout="wide", page_title="Dashboard Comercial Estratégico - Acelerar.tech", page_icon="📊", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="Dashboard Comercial Estratégico - Acelerar.tech", page_icon="📊", initial_sidebar_state="collapsed")
 
 COLOR_PRIMARY = "#0B2A4E"
 COLOR_SECONDARY = "#89CFF0"
@@ -17,7 +17,10 @@ COLOR_CHURN = "#E74C3C"
 
 st.markdown("""
     <style>
-    
+    * {
+        margin: 0;
+        padding: 0;
+    }
     html, body, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {
         background-color: #0A1E2E !important;
         color: #FFFFFF !important;
@@ -25,15 +28,12 @@ st.markdown("""
         height: 100% !important;
     }
     [data-testid="stSidebar"] {
-    background-color: #0B2A4E !important;
-    min-width: 250px !important;
-}
+        background-color: #0B2A4E !important;
+    }
     [data-testid="stHeader"] {
-    background-color: rgba(0,0,0,0) !important; /* Transparente */
-}
-.stApp > header {
-    background-color: rgba(0,0,0,0) !important;
-}
+        background-color: #0A1E2E !important;
+        display: none !important;
+    }
     [data-testid="stToolbar"] {
         display: none !important;
     }
@@ -105,7 +105,7 @@ st.markdown("""
         border-radius: 8px !important;
     }
     h1, h2, h3 {
-        color: #89CFF0 !important;
+        color: #0B2A4E !important;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     }
     .login-container {
@@ -439,7 +439,7 @@ def render_page_comercial(df):
     
     with col7:
         fig = px.pie(df_f, names='produto', values='mrr', title="Receita por Produto", hole=0.4, color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY, '#1A3A5A', '#2E5A88'])
-        fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'))
+        fig.update_layout(xaxis_title=None, yaxis_title=None)
         st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
@@ -597,7 +597,7 @@ def render_page_inadimplencia(df_cr):
         
         fig = px.pie(aging_data, values='Quantidade', names='Label', title="Clientes por Faixa de Atraso", 
                      hole=0.4, color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY, '#FF6B6B', '#E74C3C'])
-        fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'))
+        fig.update_layout(xaxis_title=None, yaxis_title=None)
         st.plotly_chart(fig, use_container_width=True)
     
     with col_tabela:
@@ -630,8 +630,6 @@ def render_page_inadimplencia(df_cr):
         df_aging_cliente['Valor Total'] = df_aging_cliente['Valor Total'].apply(lambda x: f"R$ {int(x):,}".replace(",", "."))
         df_aging_cliente = df_aging_cliente[['Cliente', 'Mensalidades', 'Valor Total', 'Faixa de Atraso']]
         df_aging_cliente.columns = ['Cliente', 'Mensalidades em Aberto', 'Valor Total em Aberto', 'Dias em Atraso']
-
-        df_aging_cliente = df_aging_cliente.sort_values(by='Mensalidades em Aberto', ascending=False)
         
         st.dataframe(df_aging_cliente, use_container_width=True, hide_index=True)
     
@@ -639,10 +637,10 @@ def render_page_inadimplencia(df_cr):
     
     st.subheader("📈 Total em Aberto por Mês de Vencimento")
     
-    evolucao_mes = df_cr_proc[df_cr_proc['data_vencimento'].notna()].groupby(df_cr_proc['data_vencimento'].dt.to_period('M'))['valor_numerico'].sum().reset_index()
-    evolucao_mes.columns = ['Mês/Ano_Periodo', 'Valor']
-    evolucao_mes = evolucao_mes.sort_values('Mês/Ano_Periodo')
-    evolucao_mes['Mês/Ano'] = evolucao_mes['Mês/Ano_Periodo'].dt.strftime('%m/%Y')
+    df_cr_proc['mes_ano_venc'] = df_cr_proc['data_vencimento'].dt.strftime('%m/%Y')
+    evolucao_mes = df_cr_proc[df_cr_proc['data_vencimento'].notna()].groupby('mes_ano_venc')['valor_numerico'].sum().reset_index()
+    evolucao_mes = evolucao_mes.sort_values('mes_ano_venc')
+    evolucao_mes.columns = ['Mês/Ano', 'Valor']
     
     fig = px.bar(evolucao_mes, x='Mês/Ano', y='Valor', title="Total em Aberto por Mês de Vencimento", 
                  color_discrete_sequence=[COLOR_PRIMARY], labels={'Valor': 'Valor (R$)'})
