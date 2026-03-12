@@ -4,11 +4,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import base64
-import hashlib
 import os
 
 # Configuração da página - Estilo Sênior Premium (Alterado para expanded)
-st.set_page_config(layout="wide", page_title="Dashboard Comercial Estratégico - Acelerar.tech", page_icon="📊", initial_sidebar_state="expanded")
+st.set_page_config(
+    layout="wide", 
+    page_title="Dashboard Comercial Estratégico - Acelerar.tech", 
+    page_icon="📊", 
+    initial_sidebar_state="expanded"
+)
 
 COLOR_PRIMARY = "#0B2A4E"
 COLOR_SECONDARY = "#89CFF0"
@@ -16,7 +20,7 @@ COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 COLOR_CHURN = "#E74C3C"
 
-# Estilização CSS Customizada - VERSÃO EXECUTIVA PREMIUM
+# Estilização CSS Customizada - VERSÃO EXECUTIVA PREMIUM CORRIGIDA
 st.markdown(f"""
     <style>
     .main {{ background-color: {COLOR_BG}; }}
@@ -68,9 +72,14 @@ st.markdown(f"""
         stroke: {COLOR_CHURN} !important;
     }}
     
-    /* Estilo da Sidebar */
+    /* Estilo da Sidebar - CORRIGIDO PARA NÃO OCULTAR */
     [data-testid="stSidebar"] {{
         background-color: {COLOR_PRIMARY} !important;
+        min-width: 300px !important;
+    }}
+    
+    [data-testid="stSidebarNav"] {{
+        background-color: transparent !important;
     }}
     
     [data-testid="stSidebar"] .stMarkdown p, 
@@ -100,13 +109,10 @@ st.markdown(f"""
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     }}
     
-    /* White Label - Ocultar menus padrão do Streamlit */
-    [data-testid="stHeader"] {{ display: none !important; }}
-    [data-testid="stToolbar"] {{ display: none !important; }}
+    /* White Label - Ocultar APENAS elementos desnecessários, mantendo a Sidebar funcional */
+    header[data-testid="stHeader"] {{ background: transparent !important; }}
     footer {{ display: none !important; }}
-    .stApp > header {{ display: none !important; }}
     [data-testid="stDecoration"] {{ display: none !important; }}
-    a[href*="github"], a[href*="deploy"], a[href*="settings"] {{ display: none !important; }}
     
     /* Login Styles */
     .login-container {{
@@ -254,35 +260,42 @@ def processar_dados(empresa):
     return df, df_cr
 
 def render_page_comercial(df):
-    st.sidebar.markdown("<h3 style='color: white; text-align: center;'>🏢 Seletor de Empresa</h3>", unsafe_allow_html=True)
-    empresa_sel = st.sidebar.selectbox("Selecione a Empresa", list(EMPRESAS.keys()), index=list(EMPRESAS.keys()).index(st.session_state.empresa))
-    if empresa_sel != st.session_state.empresa:
-        st.session_state.empresa = empresa_sel
-        st.cache_data.clear(); st.rerun()
-    
-    st.sidebar.markdown("<h3 style='color: white; text-align: center;'>🔍 Filtros Estratégicos</h3>", unsafe_allow_html=True)
-    anos = sorted(df['ano'].unique(), reverse=True)
-    ano_sel = st.sidebar.selectbox("📅 Ano de Referência", anos)
-    df_ano = df[df['ano'] == ano_sel]
-    
-    with st.sidebar.expander("📅 Selecionar Período (Meses)"):
-        meses_ordem = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-        meses_disp = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
-        meses_sel = st.multiselect("Meses", meses_disp, default=meses_disp)
-    
-    st.sidebar.divider()
-    prod_sel = st.sidebar.selectbox("📦 Produto", ["Todos"] + sorted(df['produto'].unique().tolist()))
-    vend_sel = st.sidebar.selectbox("👤 Vendedor", ["Todos"] + sorted(df['vendedor'].unique().tolist()))
-    sdr_sel = st.sidebar.selectbox("🎧 SDR", ["Todos"] + sorted(df['sdr'].unique().tolist()))
-    
-    if st.sidebar.button("🚪 Sair", use_container_width=True):
-        st.session_state.usuario_logado = False; st.rerun()
+    # SIDEBAR - FILTROS E SELETORES
+    with st.sidebar:
+        st.markdown("<h3 style='color: white; text-align: center;'>🏢 Empresa</h3>", unsafe_allow_html=True)
+        empresa_sel = st.selectbox("Selecione", list(EMPRESAS.keys()), index=list(EMPRESAS.keys()).index(st.session_state.empresa))
+        if empresa_sel != st.session_state.empresa:
+            st.session_state.empresa = empresa_sel
+            st.cache_data.clear()
+            st.rerun()
+        
+        st.divider()
+        st.markdown("<h3 style='color: white; text-align: center;'>🔍 Filtros</h3>", unsafe_allow_html=True)
+        anos = sorted(df['ano'].unique(), reverse=True)
+        ano_sel = st.selectbox("📅 Ano", anos)
+        df_ano = df[df['ano'] == ano_sel]
+        
+        with st.expander("📅 Meses"):
+            meses_ordem = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+            meses_disp = [m for m in meses_ordem if m in df_ano['mes_nome'].unique()]
+            meses_sel = st.multiselect("Selecionar", meses_disp, default=meses_disp)
+        
+        prod_sel = st.selectbox("📦 Produto", ["Todos"] + sorted(df['produto'].unique().tolist()))
+        vend_sel = st.selectbox("👤 Vendedor", ["Todos"] + sorted(df['vendedor'].unique().tolist()))
+        sdr_sel = st.selectbox("🎧 SDR", ["Todos"] + sorted(df['sdr'].unique().tolist()))
+        
+        st.divider()
+        if st.button("🚪 Sair", use_container_width=True):
+            st.session_state.usuario_logado = False
+            st.rerun()
 
+    # FILTRAGEM DE DADOS
     df_f = df_ano[df_ano['mes_nome'].isin(meses_sel)].copy()
     if prod_sel != "Todos": df_f = df_f[df_f['produto'] == prod_sel]
     if vend_sel != "Todos": df_f = df_f[df_f['vendedor'] == vend_sel]
     if sdr_sel != "Todos": df_f = df_f[df_f['sdr'] == sdr_sel]
 
+    # KPIs
     mrr_conq = df_f[df_f['status'] == 'Confirmada']['mrr'].sum()
     mrr_perd = df_f[df_f['status'] == 'Cancelada']['mrr'].sum()
     upsell_v = df_f['upgrade'].sum()
@@ -293,12 +306,16 @@ def render_page_comercial(df):
     base_ativa = len(df[df['status'] == 'Confirmada']) - len(df[df['status'] == 'Cancelada'])
     churn_p = (mrr_perd / mrr_conq * 100) if mrr_conq > 0 else 0
     
+    # HEADER E NAVEGAÇÃO
     col_nav_left, col_nav_right = st.columns([0.8, 0.2])
     with col_nav_right:
         if st.button("📋 Inadimplência", use_container_width=True):
-            st.session_state.page = 'inadimplencia'; st.rerun()
+            st.session_state.page = 'inadimplencia'
+            st.rerun()
 
     st.title(f"📊 Resumo Comercial - {st.session_state.empresa}")
+    
+    # LINHA 1 DE KPIs
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("MRR Conquistado", f"R$ {int(mrr_conq):,}".replace(",", "."))
     c2.metric("MRR Ativo (Net)", f"R$ {int(mrr_conq - mrr_perd):,}".replace(",", "."))
@@ -306,6 +323,7 @@ def render_page_comercial(df):
     c4.metric("Total de Upsell", f"R$ {int(upsell_v):,}".replace(",", "."), delta=f"{upsell_q} eventos", delta_color="normal")
     c5.metric("Ticket Médio", f"R$ {int(tkt_med):,}".replace(",", "."))
     
+    # LINHA 2 DE KPIs
     c6, c7, c8, c9 = st.columns(4)
     c6.metric("Adesão Total", f"R$ {int(df_f['adesao'].sum()):,}".replace(",", "."))
     c7.metric("Clientes fechado", cl_fech)
@@ -313,6 +331,8 @@ def render_page_comercial(df):
     c9.metric("Total Base Ativa", base_ativa)
 
     st.divider()
+    
+    # GRÁFICOS DE EVOLUÇÃO
     st.subheader("📈 Evolução Mensal")
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -336,6 +356,8 @@ def render_page_comercial(df):
         st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
+    
+    # METAS
     st.subheader("🎯 Performance vs. Metas")
     col4, col5 = st.columns(2)
     df_meta = df_f[df_f['status'] == 'Confirmada'].groupby(['mes_num','mes_nome']).agg({'mrr':'sum', 'cliente':'count'}).reset_index().sort_values('mes_num')
@@ -358,54 +380,42 @@ def render_page_comercial(df):
             st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
-    st.subheader("🏆 Rankings de SDRs (Top 5)")
-    col_sdr1, col_sdr2 = st.columns(2)
-    with col_sdr1:
-        df_rank_sdr_cont = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['cliente'].count().sort_values(ascending=True).reset_index()
-        df_rank_sdr_cont.columns = ['SDR', 'Contratos']
-        fig_sdr_cont = px.bar(df_rank_sdr_cont.tail(5), x='Contratos', y='SDR', orientation='h', title='Top 5 SDRs (Contratos)', text='Contratos', color_discrete_sequence=[COLOR_PRIMARY])
-        fig_sdr_cont.update_traces(textposition='inside', textfont_color='white')
-        fig_sdr_cont.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
-        st.plotly_chart(fig_sdr_cont, use_container_width=True)
-    with col_sdr2:
-        df_rank_sdr_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['mrr'].sum().sort_values(ascending=True).reset_index()
-        df_rank_sdr_mrr.columns = ['SDR', 'MRR']
-        fig_sdr_mrr = px.bar(df_rank_sdr_mrr.tail(5), x='MRR', y='SDR', orientation='h', title='Top 5 SDRs (MRR)', text=df_rank_sdr_mrr.tail(5)['MRR'].apply(lambda x: f"R$ {int(x):,}"), color_discrete_sequence=[COLOR_SECONDARY])
-        fig_sdr_mrr.update_traces(textposition='inside', textfont_color=COLOR_PRIMARY)
-        fig_sdr_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
-        st.plotly_chart(fig_sdr_mrr, use_container_width=True)
-
-    st.divider()
-    st.subheader("🏆 Rankings de Vendedores")
+    
+    # RANKINGS
+    st.subheader("🏆 Rankings")
     col_rank1, col_rank2 = st.columns(2)
     with col_rank1:
-        df_rank_contratos = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['cliente'].count().sort_values(ascending=True).reset_index()
-        df_rank_contratos.columns = ['Vendedor', 'Contratos']
-        fig_contratos = px.bar(df_rank_contratos.tail(10), x='Contratos', y='Vendedor', orientation='h', title='Top Vendedores (Contratos)', text='Contratos', color_discrete_sequence=[COLOR_PRIMARY])
-        fig_contratos.update_traces(textposition='inside', textfont_color='white')
-        fig_contratos.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
-        st.plotly_chart(fig_contratos, use_container_width=True)
+        df_rank_v = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=True).reset_index()
+        fig_v = px.bar(df_rank_v.tail(10), x='mrr', y='vendedor', orientation='h', title='Top Vendedores (MRR)', text=df_rank_v.tail(10)['mrr'].apply(lambda x: f"R$ {int(x):,}"), color_discrete_sequence=[COLOR_PRIMARY])
+        fig_v.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
+        st.plotly_chart(fig_v, use_container_width=True)
     with col_rank2:
-        df_rank_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=True).reset_index()
-        df_rank_mrr.columns = ['Vendedor', 'MRR']
-        fig_mrr = px.bar(df_rank_mrr.tail(10), x='MRR', y='Vendedor', orientation='h', title='Top Vendedores (MRR)', text=df_rank_mrr.tail(10)['MRR'].apply(lambda x: f"R$ {int(x):,}"), color_discrete_sequence=[COLOR_SECONDARY])
-        fig_mrr.update_traces(textposition='inside', textfont_color=COLOR_PRIMARY)
-        fig_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
-        st.plotly_chart(fig_mrr, use_container_width=True)
+        df_rank_s = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['mrr'].sum().sort_values(ascending=True).reset_index()
+        fig_s = px.bar(df_rank_s.tail(5), x='mrr', y='sdr', orientation='h', title='Top SDRs (MRR)', text=df_rank_s.tail(5)['mrr'].apply(lambda x: f"R$ {int(x):,}"), color_discrete_sequence=[COLOR_SECONDARY])
+        fig_s.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
+        st.plotly_chart(fig_s, use_container_width=True)
 
     st.divider()
     st.subheader("📋 Detalhamento")
     st.dataframe(df_f[['data', 'cliente', 'vendedor', 'sdr', 'produto', 'status', 'mrr', 'upgrade', 'adesao']].sort_values('data', ascending=False), use_container_width=True)
 
 def render_page_inadimplencia(df_cr):
+    # HEADER E NAVEGAÇÃO
     col_nav_left, col_nav_right = st.columns([0.8, 0.2])
     with col_nav_right:
         if st.button("📊 Comercial", use_container_width=True):
-            st.session_state.page = 'comercial'; st.rerun()
+            st.session_state.page = 'comercial'
+            st.rerun()
+            
     st.title(f"📋 Inadimplência - {st.session_state.empresa}")
-    if df_cr.empty: st.warning("Sem dados."); return
+    
+    if df_cr.empty:
+        st.warning("Sem dados de inadimplência disponíveis.")
+        return
+        
     df_cr_proc = df_cr.copy()
     df_cr_proc.columns = df_cr_proc.columns.str.strip()
+    
     valor_col = next((c for c in df_cr_proc.columns if 'valor' in c.lower()), None)
     venc_col = next((c for c in df_cr_proc.columns if 'vencimento' in c.lower()), None)
     cpf_col = next((c for c in df_cr_proc.columns if 'cpf' in c.lower() or 'cnpj' in c.lower()), None)
@@ -433,6 +443,7 @@ def render_page_inadimplencia(df_cr):
     c3.metric("Repasse Sittax (30%)", f"R$ {int(repasse_sittax):,}".replace(",", "."))
     
     st.divider()
+    
     st.subheader("📊 Distribuição por Faixa de Atraso")
     col_rosca, col_tabela = st.columns([1.2, 1.8])
     with col_rosca:
@@ -447,19 +458,25 @@ def render_page_inadimplencia(df_cr):
     with col_tabela:
         df_aging_cliente = df_cr_proc[df_cr_proc['faixa_atraso'] != 'Sem Data'].groupby(nome_col if nome_col else (cpf_col if cpf_col else df_cr_proc.columns[0])).agg({'valor_numerico': 'sum', 'data_vencimento': 'count'}).reset_index()
         df_aging_cliente.columns = ['Cliente', 'Valor Total', 'Mensalidades']
-        df_aging_cliente['Faixa'] = df_aging_cliente['Mensalidades'].apply(lambda x: '0-30 dias' if x==1 else ('31-60 dias' if x==2 else ('61-90 dias' if x==3 else '>90 dias')))
         st.dataframe(df_aging_cliente.sort_values(by='Mensalidades', ascending=False), use_container_width=True, hide_index=True)
     
     st.divider()
     st.subheader("📋 Detalhamento")
     st.dataframe(df_cr_proc[[venc_col, cpf_col, nome_col, valor_col]].head(100), use_container_width=True)
 
+# LÓGICA DE EXECUÇÃO
 if not st.session_state.usuario_logado:
     render_login()
 else:
-    st.sidebar.markdown(f"<h4 style='color: white;'>👤 Usuário: {st.session_state.email_usuario}</h4>", unsafe_allow_html=True)
+    # Garantir que a sidebar seja renderizada após o login
+    with st.sidebar:
+        st.markdown(f"<h4 style='color: white;'>👤 Usuário: {st.session_state.email_usuario}</h4>", unsafe_allow_html=True)
+    
     df_p, df_cr = processar_dados(st.session_state.empresa)
     if df_p is not None:
-        if st.session_state.page == 'comercial': render_page_comercial(df_p)
-        else: render_page_inadimplencia(df_cr)
-    else: st.error("Erro ao carregar os dados.")
+        if st.session_state.page == 'comercial':
+            render_page_comercial(df_p)
+        else:
+            render_page_inadimplencia(df_cr)
+    else:
+        st.error("Erro ao carregar os dados das planilhas.")
