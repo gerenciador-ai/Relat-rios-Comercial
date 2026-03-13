@@ -618,19 +618,25 @@ else:
                 
                 st.divider()
                 
-                # 2. Tabela de Resumo por Cliente (Ocupando largura total abaixo do gráfico)
+                # 2. Tabela de Resumo por Cliente (Ocupando largura total com Faixa de Atraso)
                 st.subheader("👥 Resumo por Cliente")
                 col_cliente = nome_col if nome_col else (cpf_col if cpf_col else df_cr_proc.columns[0])
+                
+                # Agrupamento que inclui a Faixa de Atraso predominante
                 df_aging_cliente = df_cr_proc[df_cr_proc['faixa_atraso'] != 'Sem Data'].groupby(col_cliente).agg({
                     'valor_numerico': 'sum', 
-                    'data_vencimento': 'count'
+                    'data_vencimento': 'count',
+                    'faixa_atraso': lambda x: x.iloc[0] # Pega a primeira faixa de atraso encontrada para o cliente
                 }).reset_index()
-                df_aging_cliente.columns = ['Cliente', 'Valor Total', 'Mensalidades em Atraso']
+                
+                # Renomeia as colunas para exibição
+                df_aging_cliente.columns = ['Cliente', 'Valor Total', 'Mensalidades em Atraso', 'Faixa de Atraso']
                 
                 # Formata o valor para Real (R$)
                 df_aging_cliente_view = df_aging_cliente.copy()
                 df_aging_cliente_view['Valor Total'] = df_aging_cliente_view['Valor Total'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
                 
+                # Exibe a tabela ordenada pelas mensalidades em atraso
                 st.dataframe(df_aging_cliente_view.sort_values(by='Mensalidades em Atraso', ascending=False), use_container_width=True, hide_index=True)
                 
                 st.divider()
