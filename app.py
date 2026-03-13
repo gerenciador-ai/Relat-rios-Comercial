@@ -29,13 +29,13 @@ def get_github_url(filename):
     return f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{filename}"
 
 LOGOS = {
-    "ACELERAR_LOGIN": get_github_url("logo_acelerar_sidebar.png"), # Usando sidebar.png no login como solicitado
+    "ACELERAR_LOGIN": get_github_url("logo_acelerar_sidebar.png"), 
     "ACELERAR_SIDEBAR": get_github_url("logo_acelerar_sidebar.png"),
     "VMC_TECH": get_github_url("logo_vmctech.png"),
     "VICTEC": get_github_url("logo_victec.png")
 }
 
-# Estilização CSS Customizada - VERSÃO WHITE LABEL (LIMPEZA TOTAL)
+# Estilização CSS Customizada - VERSÃO WHITE LABEL (LIMPEZA TOTAL E LOGIN REPOSICIONADO)
 st.markdown(f"""
     <style>
     /* Fundo Principal */
@@ -136,15 +136,15 @@ st.markdown(f"""
     .viewerBadge_container__1QS1n, .viewerBadge_link__3S19W {{ display: none !important; }}
     [data-testid="stStatusWidget"] {{ display: none !important; }}
     
-    /* Login Styles - ESTÉTICA CLEAN (SEM TEXTOS, SÓ LOGO) */
+    /* Login Styles - ESTÉTICA CLEAN E REPOSICIONADA (MAIS ALTO NA TELA) */
     .login-container {{
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        min-height: 35vh;
+        min-height: 25vh; /* Reduzido para subir o logo */
         background-color: transparent !important;
-        margin-top: 10vh;
+        margin-top: 2vh; /* Reduzido para subir o logo ao máximo */
         text-align: center;
     }}
     
@@ -155,9 +155,9 @@ st.markdown(f"""
         background-color: transparent !important;
     }}
 
-    /* Ajuste de Padding para evitar rolagem */
+    /* Ajuste de Padding para evitar rolagem e subir conteúdo */
     .block-container {{
-        padding-top: 1rem !important;
+        padding-top: 0.5rem !important;
         padding-bottom: 1rem !important;
     }}
     </style>
@@ -227,10 +227,10 @@ def parse_currency(series):
     return series.apply(clean_val)
 
 def render_login():
-    # RENDERIZAÇÃO ESTÉTICA CLEAN: APENAS O LOGO CENTRALIZADO
+    # RENDERIZAÇÃO ESTÉTICA CLEAN E ALTA: APENAS O LOGO CENTRALIZADO NO TOPO
     st.markdown('<div class="login-container">', unsafe_allow_html=True)
     
-    # Inserção do Logo da Acelerar (Sidebar.png) centralizado e redimensionado
+    # Inserção do Logo da Acelerar centralizado e redimensionado
     col_img1, col_img2, col_img3 = st.columns([1, 0.4, 1])
     with col_img2:
         st.image(LOGOS["ACELERAR_LOGIN"], use_container_width=True)
@@ -431,19 +431,36 @@ else:
 
             st.divider()
             
-            # RANKINGS
-            st.subheader("🏆 Rankings")
-            col_rank1, col_rank2 = st.columns(2)
-            with col_rank1:
-                df_rank_v = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=True).reset_index()
-                fig_v = px.bar(df_rank_v.tail(10), x='mrr', y='vendedor', orientation='h', title='Top Vendedores (MRR)', text=df_rank_v.tail(10)['mrr'].apply(lambda x: f"R$ {int(x):,}"), color_discrete_sequence=[COLOR_PRIMARY])
-                fig_v.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
-                st.plotly_chart(fig_v, use_container_width=True)
-            with col_rank2:
-                df_rank_s = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['mrr'].sum().sort_values(ascending=True).reset_index()
-                fig_s = px.bar(df_rank_s.tail(5), x='mrr', y='sdr', orientation='h', title='Top SDRs (MRR)', text=df_rank_s.tail(5)['mrr'].apply(lambda x: f"R$ {int(x):,}"), color_discrete_sequence=[COLOR_SECONDARY])
-                fig_s.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=400)
-                st.plotly_chart(fig_s, use_container_width=True)
+            # RANKINGS EXPANDIDOS (VENDEDORES E SDRS)
+            st.subheader("🏆 Rankings de Performance Comercial")
+            
+            # Rankings de Vendedores
+            st.markdown("#### 👤 Vendedores")
+            col_vend1, col_vend2 = st.columns(2)
+            with col_vend1:
+                df_rank_v_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['mrr'].sum().sort_values(ascending=True).reset_index()
+                fig_v_mrr = px.bar(df_rank_v_mrr.tail(5), x='mrr', y='vendedor', orientation='h', title='Top 5 Vendedores (MRR)', text=df_rank_v_mrr.tail(5)['mrr'].apply(lambda x: f"R$ {int(x):,}"), color_discrete_sequence=[COLOR_PRIMARY])
+                fig_v_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
+                st.plotly_chart(fig_v_mrr, use_container_width=True)
+            with col_vend2:
+                df_rank_v_cont = df_f[df_f['status'] == 'Confirmada'].groupby('vendedor')['cliente'].count().sort_values(ascending=True).reset_index()
+                fig_v_cont = px.bar(df_rank_v_cont.tail(5), x='cliente', y='vendedor', orientation='h', title='Top 5 Vendedores (Contratos)', text=df_rank_v_cont.tail(5)['cliente'], color_discrete_sequence=[COLOR_SECONDARY])
+                fig_v_cont.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
+                st.plotly_chart(fig_v_cont, use_container_width=True)
+            
+            # Rankings de SDRs
+            st.markdown("#### 🎧 SDRs")
+            col_sdr1, col_sdr2 = st.columns(2)
+            with col_sdr1:
+                df_rank_s_mrr = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['mrr'].sum().sort_values(ascending=True).reset_index()
+                fig_s_mrr = px.bar(df_rank_s_mrr.tail(5), x='mrr', y='sdr', orientation='h', title='Top 5 SDRs (MRR)', text=df_rank_s_mrr.tail(5)['mrr'].apply(lambda x: f"R$ {int(x):,}"), color_discrete_sequence=[COLOR_PRIMARY])
+                fig_s_mrr.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
+                st.plotly_chart(fig_s_mrr, use_container_width=True)
+            with col_sdr2:
+                df_rank_s_cont = df_f[df_f['status'] == 'Confirmada'].groupby('sdr')['cliente'].count().sort_values(ascending=True).reset_index()
+                fig_s_cont = px.bar(df_rank_s_cont.tail(5), x='cliente', y='sdr', orientation='h', title='Top 5 SDRs (Contratos)', text=df_rank_s_cont.tail(5)['cliente'], color_discrete_sequence=[COLOR_SECONDARY])
+                fig_s_cont.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
+                st.plotly_chart(fig_s_cont, use_container_width=True)
 
             st.divider()
             st.subheader("📋 Detalhamento")
