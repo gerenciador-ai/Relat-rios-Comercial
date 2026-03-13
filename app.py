@@ -292,20 +292,26 @@ def processar_dados(empresa):
     
     # Inicializa todos como Confirmada
     df['status'] = 'Confirmada'
-    df['data_cancelamento'] = pd.NaT
     
     # LÓGICA DE CHURN REAL (CRUZAMENTO POR CNPJ)
     if not df_c.empty:
+        # Identifica a coluna de CNPJ e Data de forma flexível
+        col_cnpj_c = next((c for c in df_c.columns if 'cnpj' in c.lower() or 'cliente' in c.lower()), df_c.columns[0])
+        col_data_c = next((c for c in df_c.columns if 'data' in c.lower() or 'cancelamento' in c.lower()), df_c.columns[-1])
+        
         # Limpeza da base de cancelados
-        df_c['cnpj_canc'] = df_c['CNPJ do Cliente'].astype(str).str.replace(r'\D', '', regex=True)
-        df_c['data_canc'] = pd.to_datetime(df_c['Data do Cancelamento'], errors='coerce')
+        df_c_clean = pd.DataFrame()
+        df_c_clean['cnpj_canc'] = df_c[col_cnpj_c].astype(str).str.replace(r'\D', '', regex=True)
+        df_c_clean['data_canc'] = pd.to_datetime(df_c[col_data_c], errors='coerce')
         
         # Mapeia a data de cancelamento para a base de vendas usando o CNPJ
-        mapeamento_canc = dict(zip(df_c['cnpj_canc'], df_c['data_canc']))
+        mapeamento_canc = dict(zip(df_c_clean['cnpj_canc'], df_c_clean['data_canc']))
         df['data_cancelamento'] = df['cnpj'].map(mapeamento_canc)
         
-        # Define como 'Cancelada' apenas se houver data de cancelamento válida
+        # Define como 'Cancelada' se houver data de cancelamento
         df.loc[df['data_cancelamento'].notna(), 'status'] = 'Cancelada'
+    else:
+        df['data_cancelamento'] = pd.NaT
         
     return df, df_cr
 
