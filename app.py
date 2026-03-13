@@ -269,7 +269,10 @@ def processar_dados(empresa):
     df_v = load_data(config['vendas_id'], config['vendas_gid'])
     df_c = load_data(config['cancelados_id'], config['cancelados_gid'])
     df_cr = load_data(config['contas_receber_id'])
+    
     if df_v.empty: return None, None
+    
+    # Processamento da Base de Vendas
     df = pd.DataFrame()
     df['vendedor'] = df_v['Vendedor'].fillna("N/A")
     df['sdr'] = df_v['SDR'].fillna("N/A")
@@ -283,12 +286,27 @@ def processar_dados(empresa):
     df = df.dropna(subset=['data'])
     df['ano'] = df['data'].dt.year.astype(int)
     df['mes_num'] = df['data'].dt.month.astype(int)
+    
     meses_pt = {1:'Janeiro', 2:'Fevereiro', 3:'Março', 4:'Abril', 5:'Maio', 6:'Junho', 7:'Julho', 8:'Agosto', 9:'Setembro', 10:'Outubro', 11:'Novembro', 12:'Dezembro'}
     df['mes_nome'] = df['mes_num'].map(meses_pt)
+    
+    # Inicializa todos como Confirmada
     df['status'] = 'Confirmada'
+    df['data_cancelamento'] = pd.NaT
+    
+    # LÓGICA DE CHURN REAL (CRUZAMENTO POR CNPJ)
     if not df_c.empty:
-        canc_cnpjs = df_c['CNPJ do Cliente'].astype(str).str.replace(r'\D', '', regex=True).unique()
-        df.loc[df['cnpj'].isin(canc_cnpjs), 'status'] = 'Cancelada'
+        # Limpeza da base de cancelados
+        df_c['cnpj_canc'] = df_c['CNPJ do Cliente'].astype(str).str.replace(r'\D', '', regex=True)
+        df_c['data_canc'] = pd.to_datetime(df_c['Data do Cancelamento'], errors='coerce')
+        
+        # Mapeia a data de cancelamento para a base de vendas usando o CNPJ
+        mapeamento_canc = dict(zip(df_c['cnpj_canc'], df_c['data_canc']))
+        df['data_cancelamento'] = df['cnpj'].map(mapeamento_canc)
+        
+        # Define como 'Cancelada' apenas se houver data de cancelamento válida
+        df.loc[df['data_cancelamento'].notna(), 'status'] = 'Cancelada'
+        
     return df, df_cr
 
 # LÓGICA DE EXECUÇÃO
