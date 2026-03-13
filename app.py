@@ -388,21 +388,30 @@ else:
             st.image(logo_unidade_url, width=150)
             st.title(f"📊 Resumo Comercial - {st.session_state.empresa}")
             
-            # --- CORREÇÃO DA LÓGICA DE KPIs (CONTABILIDADE COMERCIAL) ---
-            # MRR Conquistado: Soma total das vendas ativadas no mês (independente se cancelou depois)
+                        # --- CORREÇÃO FINAL DA CONTABILIDADE COMERCIAL (CHURN DO MÊS) ---
+            # Dicionário reverso para converter o nome do mês de volta para número
+            meses_pt_inv = {'Janeiro':1, 'Fevereiro':2, 'Março':3, 'Abril':4, 'Maio':5, 'Junho':6, 'Julho':7, 'Agosto':8, 'Setembro':9, 'Outubro':10, 'Novembro':11, 'Dezembro':12}
+            
+            # 1. MRR Conquistado: Soma total das vendas ativadas no mês selecionado
             mrr_conq = df_f['mrr'].sum()
             
-            # MRR Perdido (Churn): Soma do MRR das vendas que estão com status 'Cancelada'
-            mrr_perd = df_f[df_f['status'] == 'Cancelada']['mrr'].sum()
-            
-            # MRR Ativo (Net): Saldo líquido (Conquistado - Perdido)
-            mrr_ativo_net = mrr_conq - mrr_perd
-            
-            # Clientes Fechados: Contagem total de novos contratos ativados (independente se cancelou)
+            # 2. Clientes Fechados: Contagem total de novos contratos ativados no mês
             cl_fech = len(df_f[df_f['mrr'] > 0])
             
-            # Clientes Cancelados: Contagem de cancelamentos no período
-            cl_canc = len(df_f[df_f['status'] == 'Cancelada'])
+            # 3. MRR Perdido (Churn do Mês): 
+            # Filtra na base geral quem cancelou EXATAMENTE no mês/ano selecionado (independente de quando foi vendido)
+            df_churn_mes = df_p[
+                (df_p['data_cancelamento'].dt.year == ano_sel) & 
+                (df_p['data_cancelamento'].dt.month.isin([meses_pt_inv[m] for m in meses_sel]))
+            ]
+            mrr_perd = df_churn_mes['mrr'].sum()
+            
+            # 4. Clientes Cancelados: Contagem de perdas no mês selecionado
+            cl_canc = len(df_churn_mes)
+            
+            # 5. MRR Ativo (Net): Saldo líquido do período (Conquistado - Perdido)
+            mrr_ativo_net = mrr_conq - mrr_perd
+            # --- FIM DA CORREÇÃO ---
             
             # Outros cálculos
             upsell_v = df_f['upgrade'].sum()
