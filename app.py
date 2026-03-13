@@ -35,7 +35,7 @@ LOGOS = {
     "VICTEC": get_github_url("logo_victec.png")
 }
 
-# Estilização CSS Customizada - VERSÃO WHITE LABEL (LIMPEZA TOTAL E LOGIN REPOSICIONADO)
+# Estilização CSS Customizada - VERSÃO WHITE LABEL (CAMUFLAGEM VISUAL E LOGIN REPOSICIONADO)
 st.markdown(f"""
     <style>
     /* Fundo Principal */
@@ -121,17 +121,32 @@ st.markdown(f"""
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     }}
     
-    /* WHITE LABEL - BLOQUEIO DE MENUS GERCENCIAIS (REMOÇÃO DO GITHUB, SHARE, ETC) */
-    /* Ajustado para NÃO esconder o botão de controle da sidebar */
-    header[data-testid="stHeader"] {{ background: transparent !important; height: 0 !important; }}
+    /* WHITE LABEL - CAMUFLAGEM VISUAL (MODO INVISÍVEL) */
+    /* Em vez de esconder o header todo, camuflamos os botões indesejados */
+    header[data-testid="stHeader"] {{ 
+        background-color: rgba(0,0,0,0) !important;
+    }}
+    
+    /* Camuflagem dos botões de Share, GitHub e Menu */
+    button[title="View source on GitHub"], 
+    button[title="Share this app"], 
+    #MainMenu {{ 
+        opacity: 0 !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        pointer-events: none !important;
+    }}
+    
+    /* Garantir que o botão de abrir sidebar (setinha) continue visível e funcional */
+    [data-testid="stSidebarCollapsedControl"] {{
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }}
+
     footer {{ display: none !important; }}
     [data-testid="stDecoration"] {{ display: none !important; }}
     [data-testid="stToolbar"] {{ display: none !important; }}
-    
-    /* Esconder especificamente botões de Share, GitHub e Menu no topo, mas manter o botão de sidebar */
-    button[title="View source on GitHub"], 
-    button[title="Share this app"], 
-    #MainMenu {{ display: none !important; }}
     
     /* Esconder rodapé "Gerenciar aplicativo" no Streamlit Cloud */
     .viewerBadge_container__1QS1n, .viewerBadge_link__3S19W {{ display: none !important; }}
@@ -277,7 +292,6 @@ def processar_dados(empresa):
     df_canc_proc = pd.DataFrame()
     if not df_c.empty:
         df_canc_proc['cnpj'] = df_c['CNPJ do Cliente'].astype(str).str.replace(r'\D', '', regex=True)
-        # Tenta encontrar a coluna de data de cancelamento
         data_canc_col = next((c for c in df_c.columns if 'cancelamento' in c.lower() or 'data' in c.lower()), df_c.columns[0])
         df_canc_proc['data'] = pd.to_datetime(df_c[data_canc_col], errors='coerce')
         df_canc_proc = df_canc_proc.dropna(subset=['data'])
@@ -347,9 +361,7 @@ else:
             
             # CORREÇÃO CHURN: Cruzar CNPJs cancelados com a base de Vendas para obter o MRR
             if df_c is not None and not df_c.empty:
-                # Filtra cancelados do período selecionado
                 df_c_periodo = df_c[(df_c['ano'] == ano_sel) & (df_c['mes_nome'].isin(meses_sel))]
-                # Cruza com a base total de vendas (df_p) para pegar o MRR original
                 df_c_f = pd.merge(df_c_periodo, df_p[['cnpj', 'mrr', 'cliente']], on='cnpj', how='left').drop_duplicates(subset=['cnpj'])
             else:
                 df_c_f = pd.DataFrame()
@@ -396,7 +408,6 @@ else:
                 st.plotly_chart(fig, use_container_width=True)
             with col3:
                 if df_c is not None and not df_c.empty:
-                    # Evolução de Churn precisa cruzar com Vendas para ter o MRR por mês
                     df_c_evol_data = pd.merge(df_c[df_c['ano'] == ano_sel], df_p[['cnpj', 'mrr']], on='cnpj', how='left').drop_duplicates(subset=['cnpj'])
                     df_c_evol = df_c_evol_data.groupby(['mes_num','mes_nome']).agg({'mrr':'sum', 'cnpj':'count'}).reset_index().sort_values('mes_num')
                     fig = px.bar(df_c_evol, x='mes_nome', y='mrr', text='cnpj', title="Evolução de Churn", color_discrete_sequence=[COLOR_PRIMARY])
@@ -469,7 +480,7 @@ else:
                     else: return '>90 dias'
                 df_cr_proc['faixa_atraso'] = df_cr_proc['dias_atraso'].apply(categorizar_atraso)
                 
-                # CORREÇÃO AGING: Regra da Pior Faixa (Cada cliente contado apenas uma vez)
+                # CORREÇÃO AGING: Regra da Pior Faixa
                 df_pior_faixa = df_cr_proc.sort_values('dias_atraso', ascending=False).drop_duplicates(subset=[cpf_col if cpf_col else nome_col])
                 
                 total_aberto = df_cr_proc['valor_numerico'].sum()
