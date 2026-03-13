@@ -272,7 +272,7 @@ def processar_dados(empresa):
     
     if df_v.empty: return None, None
     
-    # Processamento da Base de Vendas
+    # 1. Processamento da Base de Vendas (Base Ativa)
     df = pd.DataFrame()
     df['vendedor'] = df_v['Vendedor'].fillna("N/A")
     df['sdr'] = df_v['SDR'].fillna("N/A")
@@ -282,7 +282,6 @@ def processar_dados(empresa):
     df['mrr'] = parse_currency(df_v['Mensalidade - Simples'])
     df['adesao'] = parse_currency(df_v['Adesão - Simples']) + parse_currency(df_v['Adesão - Recupera'])
     df['upgrade'] = parse_currency(df_v['Aumento da mensalidade'])
-    # Força o formato brasileiro na data de ativação
     df['data'] = pd.to_datetime(df_v['Data de Ativação'], dayfirst=True, errors='coerce')
     df = df.dropna(subset=['data'])
     df['ano'] = df['data'].dt.year.astype(int)
@@ -295,27 +294,26 @@ def processar_dados(empresa):
     df['status'] = 'Confirmada'
     df['data_cancelamento'] = pd.NaT
     
-    # LÓGICA DE CHURN REAL (CRUZAMENTO POR CNPJ)
+    # 2. LÓGICA DE CHURN (CRUZAMENTO SEGURO SEM DUPLICAÇÃO)
     if not df_c.empty:
-        # Identifica a coluna de CNPJ e Data de forma flexível
+        # Identifica colunas de forma flexível
         col_cnpj_c = next((c for c in df_c.columns if 'cnpj' in c.lower() or 'cliente' in c.lower()), df_c.columns[0])
         col_data_c = next((c for c in df_c.columns if 'data' in c.lower() or 'cancelamento' in c.lower()), df_c.columns[-1])
         
-        # Limpeza da base de cancelados
+        # Limpa e Garante Unicidade na Base de Cancelados (Pega apenas a última data de cancelamento por CNPJ)
         df_c_clean = pd.DataFrame()
-        df_c_clean['cnpj_canc'] = df_c[col_cnpj_c].astype(str).str.replace(r'\D', '', regex=True)
-        # FORÇA O FORMATO BRASILEIRO (DD/MM/AAAA) NA DATA DE CANCELAMENTO
+        df_c_clean['cnpj'] = df_c[col_cnpj_c].astype(str).str.replace(r'\D', '', regex=True)
         df_c_clean['data_canc'] = pd.to_datetime(df_c[col_data_c], dayfirst=True, errors='coerce')
+        df_c_clean = df_c_clean.dropna(subset=['cnpj', 'data_canc']).sort_values('data_canc', ascending=False)
         
-        # Remove registros sem CNPJ ou sem Data de cancelamento
-        df_c_clean = df_c_clean.dropna(subset=['cnpj_canc', 'data_canc'])
+        # REMOVE DUPLICADOS: Garante que cada CNPJ apareça apenas uma vez na lista de cancelados
+        df_c_unique = df_c_clean.drop_duplicates(subset=['cnpj'])
         
-        # Mapeia a data de cancelamento para a base de vendas usando o CNPJ
-        # IMPORTANTE: Se o cliente cancelou mais de uma vez, pegamos a data mais recente
-        mapeamento_canc = df_c_clean.sort_values('data_canc').set_index('cnpj_canc')['data_canc'].to_dict()
-        df['data_cancelamento'] = df['cnpj'].map(mapeamento_canc)
+        # MAPEAMENTO DIRETO (EVITA O MERGE QUE DUPLICA LINHAS)
+        mapa_datas = dict(zip(df_c_unique['cnpj'], df_c_unique['data_canc']))
+        df['data_cancelamento'] = df['cnpj'].map(mapa_datas)
         
-        # Define como 'Cancelada' se houver data de cancelamento
+        # Define o status final
         df.loc[df['data_cancelamento'].notna(), 'status'] = 'Cancelada'
         
     return df, df_cr
