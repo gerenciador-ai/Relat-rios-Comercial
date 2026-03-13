@@ -46,11 +46,6 @@ st.markdown(f"""
         background-color: {COLOR_PRIMARY} !important;
     }}
     
-    /* REMOVER BOTÃO DE RECOLHER SIDEBAR (DEIXAR FIXO) */
-    button[data-testid="sidebar-collapse-button"] {{
-        display: none !important;
-    }}
-    
     /* Estilo Base dos Cards de KPI */
     div[data-testid="stMetric"] {{
         background-color: {COLOR_PRIMARY} !important;
@@ -103,6 +98,7 @@ st.markdown(f"""
     [data-testid="stSidebar"] label, 
     [data-testid="stSidebar"] .stExpander p,
     [data-testid="stSidebar"] .stMultiSelect label {{
+        color: {COLOR_TEXT} !important;
         font-weight: 600 !important;
     }}
     
@@ -402,7 +398,7 @@ else:
             st.subheader("📈 Evolução Mensal")
             col1, col2, col3 = st.columns(3)
             with col1:
-                df_m = df_ano[df_ano['status'] == 'Confirmada'].groupby(['mes_num','mes_nome']).agg({'mrr':'sum', 'cliente':'count'}).reset_index().sort_values('mes_num')
+                df_m = df_ano.groupby(['mes_num','mes_nome']).agg({'mrr':'sum', 'cliente':'count'}).reset_index().sort_values('mes_num')
                 fig = px.bar(df_m, x='mes_nome', y='mrr', text='cliente', title="MRR Conquistado", color_discrete_sequence=[COLOR_PRIMARY])
                 fig.update_traces(texttemplate='%{text}', textposition='inside')
                 fig.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
