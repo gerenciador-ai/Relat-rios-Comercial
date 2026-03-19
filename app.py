@@ -5,6 +5,9 @@ import plotly.graph_objects as go
 from datetime import datetime
 import base64
 import os
+import pandas as pd
+from core.nibo_api import NiboAPI
+from core.dre_engine import DREEngine
 
 # Configuração da página - Estilo Sênior Premium (Layout Wide e Sidebar Expansível)
 st.set_page_config(
@@ -400,10 +403,14 @@ else:
             if sdr_sel != "Todos": df_f = df_f[df_f['sdr'] == sdr_sel]
 
             # HEADER E NAVEGAÇÃO
-            col_nav_left, col_nav_right = st.columns([0.8, 0.2])
+            col_nav_left, col_nav_right = st.columns([0.6, 0.2, 0.2])
             with col_nav_right:
                 if st.button("📋 Inadimplência", use_container_width=True):
                     st.session_state.page = 'inadimplencia'
+                    st.rerun()
+            with col_nav_right:
+                if st.button("💰 Financeiro", use_container_width=True):
+                    st.session_state.page = 'financeiro'
                     st.rerun()
 
             # Logo da Unidade redimensionado via width acima do título
@@ -569,10 +576,14 @@ else:
         
         else:
             # PÁGINA DE INADIMPLÊNCIA
-            col_nav_left, col_nav_right = st.columns([0.8, 0.2])
+            col_nav_left, col_nav_right, col_nav_mid = st.columns([0.6, 0.2, 0.2])
             with col_nav_right:
                 if st.button("📊 Comercial", use_container_width=True):
                     st.session_state.page = 'comercial'
+                    st.rerun()
+            with col_nav_mid:
+                if st.button("💰 Financeiro", use_container_width=True):
+                    st.session_state.page = 'financeiro'
                     st.rerun()
             
             # Logo da Unidade redimensionado via width acima do título
@@ -668,7 +679,76 @@ else:
                 # 3. Detalhamento de Títulos (Largura total)
                 st.subheader("📋 Detalhamento de Títulos")
                 st.dataframe(df_cr_proc[[venc_col, cpf_col, nome_col, valor_col, 'faixa_atraso']].sort_values(by=venc_col), use_container_width=True, hide_index=True)
+            
+            elif st.session_state.page == 'financeiro':
+                # PÁGINA FINANCEIRA (DRE/DFC)
+                col_nav_left, col_nav_right, col_nav_mid = st.columns([0.6, 0.2, 0.2])
+                with col_nav_right:
+                    if st.button("📊 Comercial", use_container_width=True):
+                        st.session_state.page = 'comercial'
+                        st.rerun()
+                with col_nav_mid:
+                    if st.button("📋 Inadimplência", use_container_width=True):
+                        st.session_state.page = 'inadimplencia'
+                        st.rerun()
 
+                st.image(logo_unidade_url, width=150)
+                st.title(f"💰 Financeiro (DRE/DFC) - {st.session_state.empresa}")
+                
+                # Configuração da API Key (Bllog Tecnologia por enquanto)
+                api_keys = {
+                    "Bllog Tecnologia": "9164337AD3094A38B40ECD97A26F8B41"
+                }
+                
+                if st.session_state.empresa in api_keys:
+                    api_token = api_keys[st.session_state.empresa]
+                    nibo = NiboAPI(api_token)
+                    engine = DREEngine()
+                    
+                    with st.spinner(f"Extraindo dados do Nibo para {st.session_state.empresa}..."):
+                        # Extrair dados do Nibo
+                        df_receber = nibo.get_all_contas_receber()
+                        df_pagar = nibo.get_all_contas_pagar()
+                        
+                        # Consolidar lançamentos
+                        df_lancamentos = pd.concat([df_receber, df_pagar], ignore_index=True)
+                        
+                        if not df_lancamentos.empty:
+                            # Processar com DREEngine
+                            engine.processar_lançamentos(df_lancamentos, st.session_state.empresa)
+                            
+                            # Exibir DRE
+                            st.subheader("📈 DRE (Demonstração do Resultado do Exercício)")
+                            df_dre = engine.gerar_dre(st.session_state.empresa)
+                            
+                            # Estilizar DRE
+                            def highlight_subtotal(s):
+                                return ['font-weight: bold; background-color: #f0f2f6; color: #000000' if v == 'Subtotal' else '' for v in s]
+                            
+                            st.dataframe(
+                                df_dre.style.apply(highlight_subtotal, axis=1),
+                                use_container_width=True,
+                                hide_index=True
+                            )
+                            
+                            st.divider()
+                            
+                            # Exibir DFC
+                            st.subheader("💰 DFC (Demonstração do Fluxo de Caixa)")
+                            df_dfc = engine.gerar_dfc(df_lancamentos, st.session_state.empresa)
+                            
+                            # Gráfico de Fluxo de Caixa
+                            fig_dfc = px.line(df_dfc, x='data', y='value', color='categoria', title="Evolução do Fluxo de Caixa por Categoria")
+                            fig_dfc.update_layout(xaxis_title=None, yaxis_title=None, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+                            st.plotly_chart(fig_dfc, use_container_width=True)
+                            
+                            st.dataframe(df_dfc.sort_values('data', ascending=False), use_container_width=True, hide_index=True)
+                            
+                        else:
+                            st.info(f"Nenhum lançamento financeiro encontrado no Nibo para {st.session_state.empresa}.")
+                else:
+                    st.warning(f"Integração Nibo ainda não configurada para a empresa: {st.session_state.empresa}")
+            
     else:
         st.error("Erro ao carregar os dados das planilhas.")
 
