@@ -5,7 +5,7 @@ from datetime import datetime
 import requests
 from io import StringIO
 
-# --- 1. CONFIGURAÇÃO DA PÁGINA (ESTILO SÊNIOR PREMIUM) ---
+# --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     layout="wide", 
     page_title="Hub Holding Acelerar - Portal Estratégico", 
@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CORES EXATAS DO SEU COMERCIAL.PY
+# VARIÁVEIS DE ESTILO
 COLOR_PRIMARY = "#0B2A4E"
 COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
@@ -28,7 +28,7 @@ if 'usuario_logado' not in st.session_state: st.session_state.usuario_logado = F
 if 'email_usuario' not in st.session_state: st.session_state.email_usuario = None
 if 'modulo' not in st.session_state: st.session_state.modulo = 'hub'
 
-# --- 2. FUNÇÃO DE CARREGAMENTO DE USUÁRIOS (EXATA DO COMERCIAL.PY) ---
+# --- 2. FUNÇÃO DE CARREGAMENTO DE USUÁRIOS ---
 @st.cache_data(ttl=600)
 def carregar_usuarios_autorizados():
     try:
@@ -41,27 +41,28 @@ def carregar_usuarios_autorizados():
     except:
         return []
 
-# --- 3. CSS DO LOGIN (LIMPEZA TOTAL E ESTILO SÊNIOR PREMIUM) ---
-st.markdown(f"""
+# --- 3. CSS DO LOGIN (LIMPEZA TOTAL) ---
+# Usando aspas triplas puras para evitar erros de escape
+st.markdown("""
 <style>
-    .stApp {{ background-color: {COLOR_BG}; }}
-    [data-testid="stSidebar"] {{ display: none !important; }}
-    [data-testid="collapsedControl"] {{ display: none !important; }}
-    .login-container {{
-        background-color: {COLOR_PRIMARY};
+    .stApp { background-color: #0A1E2E; }
+    [data-testid="stSidebar"] { display: none !important; }
+    [data-testid="collapsedControl"] { display: none !important; }
+    .login-container {
+        background-color: #0B2A4E;
         padding: 40px;
         border-radius: 15px;
-        border: 1px solid {COLOR_SECONDARY};
+        border: 1px solid #89CFF0;
         box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         max-width: 450px;
         margin: 5% auto;
         text-align: center;
-    }}
-    .stTextInput > div > div > input {{
+    }
+    .stTextInput > div > div > input {
         background-color: #0A1E2E;
         color: white;
-        border: 1px solid {COLOR_SECONDARY};
-    }}
+        border: 1px solid #89CFF0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -71,7 +72,7 @@ def tela_login():
     with col2:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/gerenciador-ai/Relat-rios-Comercial/main/logo_acelerar_sidebar.png", width=250 )
-        st.markdown(f"<h2 style='color: {COLOR_TEXT}; margin-top: 20px;'>Portal da Holding</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white; margin-top: 20px;'>Portal da Holding</h2>", unsafe_allow_html=True)
         
         email = st.text_input("E-mail corporativo", placeholder="seuemail@acelerar.tech")
         senha = st.text_input("Senha mestra", type="password", placeholder="Digite a senha")
@@ -92,8 +93,8 @@ def tela_login():
 
 # --- 5. PORTAL DE SELEÇÃO DE MÓDULOS ---
 def portal_hub():
-    st.markdown(f"<h1 style='color: {COLOR_TEXT}; text-align: center;'>🚀 Bem-vindo, {st.session_state.email_usuario.split('@')[0].upper()}!</h1>", unsafe_allow_html=True)
-    st.markdown(f"<h4 style='color: {COLOR_SECONDARY}; text-align: center;'>Escolha o módulo da Holding Acelerar para iniciar:</h4>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='color: white; text-align: center;'>🚀 Bem-vindo, {st.session_state.email_usuario.split('@')[0].upper()}!</h1>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #89CFF0; text-align: center;'>Escolha o módulo da Holding Acelerar para iniciar:</h4>", unsafe_allow_html=True)
     st.divider()
     
     col1, col2 = st.columns(2)
