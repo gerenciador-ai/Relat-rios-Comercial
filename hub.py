@@ -2,53 +2,65 @@ import streamlit as st
 import pandas as pd
 import requests
 from io import StringIO
-from datetime import datetime
 
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="Hub Holding Acelerar", page_icon="🏢", initial_sidebar_state="collapsed")
 
 # 2. CONFIGURAÇÕES DE ACESSO
-USUARIOS_SHEET_ID = "15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk"
-SENHA_MESTRA = "Acelerar@2026"
+ID_SHEET = "15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk"
+PASS_MESTRA = "Acelerar@2026"
 
 # 3. ESTADOS DE SESSÃO
-if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = False
-if "email_usuario" not in st.session_state: st.session_state.email_usuario = None
-if "modulo" not in st.session_state: st.session_state.modulo = "hub"
+if "usuario_logado" not in st.session_state:
+    st.session_state.usuario_logado = False
+if "email_usuario" not in st.session_state:
+    st.session_state.email_usuario = None
+if "modulo" not in st.session_state:
+    st.session_state.modulo = "hub"
 
 # 4. CARREGAMENTO DE USUÁRIOS
 @st.cache_data(ttl=600)
-def carregar_usuarios_autorizados():
+def carregar_usuarios():
     try:
-        url = "https://docs.google.com/spreadsheets/d/" + USUARIOS_SHEET_ID + "/export?format=csv"
-        response = requests.get(url )
-        if response.status_code == 200:
-            df = pd.read_csv(StringIO(response.text))
+        url_base = "https://docs.google.com/spreadsheets/d/"
+        url_final = "/export?format=csv"
+        url = url_base + ID_SHEET + url_final
+        res = requests.get(url )
+        if res.status_code == 200:
+            df = pd.read_csv(StringIO(res.text))
             return df.iloc[:, 0].astype(str).str.strip().str.lower().tolist()
         return []
     except:
         return []
 
-# 5. INJEÇÃO DE CSS (FORMATO SEGURO)
-st.markdown("<style>.stApp { background-color: #0A1E2E; } [data-testid='stSidebar'] { display: none !important; } [data-testid='collapsedControl'] { display: none !important; } .login-container { background-color: #0B2A4E; padding: 40px; border-radius: 15px; border: 1px solid #89CFF0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 450px; margin: 5% auto; text-align: center; } .stTextInput > div > div > input { background-color: #0A1E2E; color: white; border: 1px solid #89CFF0; }</style>", unsafe_allow_html=True)
+# 5. INJEÇÃO DE CSS (FORMATO ULTRA SEGURO)
+# Dividido em partes para evitar quebras de string do interpretador
+css_1 = "<style>.stApp { background-color: #0A1E2E; } "
+css_2 = "[data-testid='stSidebar'] { display: none !important; } "
+css_3 = "[data-testid='collapsedControl'] { display: none !important; } "
+css_4 = ".login-box { background-color: #0B2A4E; padding: 40px; border-radius: 15px; "
+css_5 = "border: 1px solid #89CFF0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); "
+css_6 = "max-width: 450px; margin: 5% auto; text-align: center; }</style>"
+st.markdown(css_1 + css_2 + css_3 + css_4 + css_5 + css_6, unsafe_allow_html=True)
 
 # 6. TELA DE LOGIN
 def tela_login():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
-        st.image("https://raw.githubusercontent.com/gerenciador-ai/Relat-rios-Comercial/main/logo_acelerar_sidebar.png", width=250 )
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        st.markdown("<div class='login-box'>", unsafe_allow_html=True)
+        img_url = "https://raw.githubusercontent.com/gerenciador-ai/Relat-rios-Comercial/main/logo_acelerar_sidebar.png"
+        st.image(img_url, width=250 )
         st.markdown("<h2 style='color: white; margin-top: 20px;'>Portal da Holding</h2>", unsafe_allow_html=True)
         email = st.text_input("E-mail corporativo", placeholder="seuemail@acelerar.tech")
-        senha = st.text_input("Senha mestra", type="password", placeholder="Digite a senha")
+        senha = st.text_input("Senha mestra", type="password")
         st.markdown("  
 ", unsafe_allow_html=True)
         if st.button("Acessar Portal", use_container_width=True):
-            usuarios_permitidos = carregar_usuarios_autorizados()
-            email_input = email.strip().lower()
-            if (email_input in usuarios_permitidos or email_input == "acelerar@acelerar.tech") and senha == SENHA_MESTRA:
+            users = carregar_usuarios()
+            email_in = email.strip().lower()
+            if (email_in in users or email_in == "acelerar@acelerar.tech") and senha == PASS_MESTRA:
                 st.session_state.usuario_logado = True
-                st.session_state.email_usuario = email_input
+                st.session_state.email_usuario = email_in
                 st.rerun()
             else:
                 st.error("❌ Acesso negado.")
@@ -56,17 +68,17 @@ def tela_login():
 
 # 7. PORTAL HUB
 def portal_hub():
-    nome = st.session_state.email_usuario.split("@")[0].upper()
-    st.markdown("<h1 style='color: white; text-align: center;'>🚀 Bem-vindo, " + nome + "!</h1>", unsafe_allow_html=True)
+    user_name = st.session_state.email_usuario.split("@")[0].upper()
+    st.markdown("<h1 style='color: white; text-align: center;'>🚀 Bem-vindo, " + user_name + "!</h1>", unsafe_allow_html=True)
     st.markdown("<h4 style='color: #89CFF0; text-align: center;'>Escolha o módulo para iniciar:</h4>", unsafe_allow_html=True)
     st.divider()
-    c1, c2 = st.columns(2)
-    with c1:
+    col1, col2 = st.columns(2)
+    with col1:
         st.info("### 📊 Módulo Comercial")
         if st.button("Acessar Comercial", use_container_width=True, type="primary"):
             st.session_state.modulo = "comercial"
             st.rerun()
-    with c2:
+    with col2:
         st.success("### 💰 Módulo Financeiro")
         if st.button("Acessar Financeiro", use_container_width=True, type="primary"):
             st.session_state.modulo = "financeiro"
@@ -85,7 +97,8 @@ else:
     elif st.session_state.modulo == "comercial":
         try:
             with open("comercial/comercial.py", encoding="utf-8") as f:
-                exec(f.read())
+                code_to_run = f.read()
+                exec(code_to_run)
         except Exception as e:
             st.error("Erro no módulo Comercial: " + str(e))
     elif st.session_state.modulo == "financeiro":
