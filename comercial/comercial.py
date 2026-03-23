@@ -6,7 +6,7 @@ from datetime import datetime
 import base64
 import os
 
-# Configuração da página - Estilo Sênior Premium (Layout Wide e Sidebar Expansível)
+# --- 1. CONFIGURAÇÃO DA PÁGINA (ESTILO SÊNIOR PREMIUM) ---
 st.set_page_config(
     layout="wide", 
     page_title="Dashboard Comercial Estratégico - Acelerar.tech", 
@@ -14,13 +14,32 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- 2. CSS DE LIMPEZA SELETIVA (REMOVE O LIXO, MANTÉM OS FILTROS) ---
+st.markdown("""
+    <style>
+        /* Remove cabeçalho, decoração e rodapé do Streamlit */
+        [data-testid="stHeader"], [data-testid="stDecoration"], footer { 
+            display: none !important; 
+        }
+        /* Garante que a sidebar e o botão de filtros apareçam */
+        [data-testid="stSidebar"], [data-testid="collapsedControl"] { 
+            display: flex !important; 
+        }
+        /* Ajusta o topo para os filtros ficarem visíveis e sem espaços mortos */
+        .main .block-container { 
+            padding-top: 2rem !important; 
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 3. CORES E DEFINIÇÕES ---
 COLOR_PRIMARY = "#0B2A4E"
 COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 COLOR_CHURN = "#E74C3C"
 
-# --- LINKS DIRETOS DO GITHUB PARA OS LOGOS ---
+# --- 4. LINKS DIRETOS DO GITHUB PARA OS LOGOS ---
 GITHUB_USER = "gerenciador-ai"
 GITHUB_REPO = "Relat-rios-Comercial"
 GITHUB_BRANCH = "main"
@@ -29,7 +48,7 @@ def get_github_url(filename):
     return f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{filename}"
 
 LOGOS = {
-    "ACELERAR_LOGIN": get_github_url("logo_acelerar_sidebar.png"), 
+    "ACELERAR_LOGIN": get_github_url("logo_acelerar_sidebar.png" ), 
     "ACELERAR_SIDEBAR": get_github_url("logo_acelerar_sidebar.png"),
     "VMC_TECH": get_github_url("logo_vmctech.png"),
     "VICTEC": get_github_url("logo_victec.png")
