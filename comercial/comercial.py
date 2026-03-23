@@ -14,6 +14,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- LIMPEZA DE CACHE PARA DESTRAVAR O CARREGAMENTO (INSERIR AQUI) ---
+if 'cache_limpo' not in st.session_state:
+    st.cache_data.clear()
+    st.session_state.cache_limpo = True
+
 # --- 2. CSS DE LIMPEZA SELETIVA (REMOVE O LIXO, MANTÉM OS FILTROS) ---
 st.markdown("""
     <style>
