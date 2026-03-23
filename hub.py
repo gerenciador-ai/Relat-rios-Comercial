@@ -24,6 +24,38 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
+if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
+    st.markdown(f"""
+        <style>
+            /* 1. Limpeza Radical: Esconde cabeçalho, decoração, setinha e rodapé */
+            [data-testid="stHeader"], [data-testid="stDecoration"], footer {{ display: none !important; }}
+            [data-testid="collapsedControl"], [data-testid="stSidebar"] {{ display: none !important; }}
+            
+            /* 2. Zera o topo da página sem cortar o conteúdo */
+            .main .block-container {{
+                padding-top: 0rem !important;
+                margin-top: -1rem !important;
+            }}
+            .stApp {{ background-color: {COLOR_BG}; }}
+
+            /* 3. Estilo do Logo Customizado (Garante centralização e tamanho) */
+            .logo-wrapper {{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px 0;
+                width: 100%;
+            }}
+            .logo-wrapper img {{
+                max-width: 250px;
+                height: auto;
+            }}
+        </style>
+        <div class="logo-wrapper">
+            <img src="https://raw.githubusercontent.com/gerenciador-ai/Relat-rios-Comercial/main/logo_acelerar_sidebar.png">
+        </div>
+    """, unsafe_allow_html=True )
+
 # CONFIGURAÇÕES DE ACESSO (LITERAL DO COMERCIAL.PY)
 USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
 SENHA_MESTRA = 'Acelerar@2026'
@@ -123,35 +155,3 @@ else:
         if st.button("Voltar ao Hub"):
             st.session_state.modulo = 'hub'
             st.rerun()
-
-if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
-    st.markdown(f"""
-    <style>
-        /* 1. Remove o espaço morto do topo de forma limpa */
-        .main .block-container {{
-            padding-top: 1rem !important;
-            padding-bottom: 0rem !important;
-        }}
-        
-        /* 2. Remove o container que causa o retângulo azul (o bloco vazio) */
-        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stMarkdown"] > div[style*="display: none"]),
-        div[data-testid="stVerticalBlock"] > div:empty {{
-            display: none !important;
-            height: 0px !important;
-            margin: 0px !important;
-            padding: 0px !important;
-        }}
-
-        /* 3. Remove decoração, sidebar, cabeçalho e rodapé */
-        [data-testid="stDecoration"], 
-        [data-testid="collapsedControl"], 
-        [data-testid="stSidebar"], 
-        [data-testid="stHeader"], 
-        footer {{
-            display: none !important;
-        }}
-        
-        /* 4. Garante a cor de fundo */
-        .stApp {{ background-color: {COLOR_BG}; }}
-    </style>
-    """, unsafe_allow_html=True)
