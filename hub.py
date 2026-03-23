@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide", 
     page_title="Hub Holding Acelerar - Portal Estratégico", 
     page_icon="🏢", 
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # CORES EXATAS DO SEU COMERCIAL.PY
