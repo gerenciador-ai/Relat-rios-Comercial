@@ -24,38 +24,6 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
-if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
-    st.markdown(f"""
-        <style>
-            /* 1. Limpeza Radical: Esconde cabeçalho, decoração, setinha e rodapé */
-            [data-testid="stHeader"], [data-testid="stDecoration"], footer {{ display: none !important; }}
-            [data-testid="collapsedControl"], [data-testid="stSidebar"] {{ display: none !important; }}
-            
-            /* 2. Zera o topo da página sem cortar o conteúdo */
-            .main .block-container {{
-                padding-top: 0rem !important;
-                margin-top: -1rem !important;
-            }}
-            .stApp {{ background-color: {COLOR_BG}; }}
-
-            /* 3. Estilo do Logo Customizado (Garante centralização e tamanho) */
-            .logo-wrapper {{
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 20px 0;
-                width: 100%;
-            }}
-            .logo-wrapper img {{
-                max-width: 250px;
-                height: auto;
-            }}
-        </style>
-        <div class="logo-wrapper">
-            <img src="https://raw.githubusercontent.com/gerenciador-ai/Relat-rios-Comercial/main/logo_acelerar_sidebar.png">
-        </div>
-    """, unsafe_allow_html=True )
-
 # CONFIGURAÇÕES DE ACESSO (LITERAL DO COMERCIAL.PY)
 USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
 SENHA_MESTRA = 'Acelerar@2026'
