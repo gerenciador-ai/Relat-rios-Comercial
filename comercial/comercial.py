@@ -406,14 +406,15 @@ else:
             # 1. Limpa o estado interno do Streamlit
             st.session_state.usuario_logado = False
             
-            # 2. Força o navegador a sair do iframe e voltar para o Portal na Vercel
+            # 2. COMANDO MESTRE: Força a página PAI (Vercel) a recarregar do zero
             st.markdown("""
                 <script>
-                    window.parent.location.href = "https://portal-acelerar.vercel.app/";
+                    // Este comando "quebra" o iframe e redireciona a página principal
+                    window.top.location.href = "https://portal-acelerar.vercel.app/";
                 </script>
             """, unsafe_allow_html=True )
             
-            # 3. Fallback (caso o script falhe em algum navegador)
+            # 3. Fallback de segurança (Tag Meta)
             st.markdown('<meta http-equiv="refresh" content="0; url=https://portal-acelerar.vercel.app/">', unsafe_allow_html=True )
             st.stop()
 
