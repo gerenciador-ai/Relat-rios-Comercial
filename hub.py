@@ -19,32 +19,6 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
-if st.session_state.modulo == 'hub':
-    st.markdown(f"""
-    <style>
-        /* Oculta o botão de expandir/recolher a sidebar (A SETINHA) */
-        [data-testid="collapsedControl"] {{
-            display: none !important;
-        }}
-        /* Oculta a sidebar em si */
-        [data-testid="stSidebar"] {{
-            display: none !important;
-        }}
-        /* Oculta o menu superior (GitHub/Streamlit) */
-        [data-testid="stHeader"] {{
-            display: none !important;
-        }}
-        /* Oculta o rodapé "Made with Streamlit" */
-        footer {{
-            display: none !important;
-        }}
-        /* Garante a cor de fundo correta no Hub */
-        .stApp {{
-            background-color: {COLOR_BG};
-        }}
-    </style>
-    """, unsafe_allow_html=True)
-
 # CONFIGURAÇÕES DE ACESSO (LITERAL DO COMERCIAL.PY)
 USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
 SENHA_MESTRA = 'Acelerar@2026'
