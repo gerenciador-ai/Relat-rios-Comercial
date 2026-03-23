@@ -17,15 +17,27 @@ st.set_page_config(
 # --- 2. CSS DE LIMPEZA SELETIVA (REMOVE O LIXO, MANTÉM OS FILTROS) ---
 st.markdown("""
     <style>
-        /* Remove cabeçalho, decoração e rodapé do Streamlit */
+        /* 1. Remove cabeçalho, decoração e rodapé original */
         [data-testid="stHeader"], [data-testid="stDecoration"], footer { 
             display: none !important; 
         }
-        /* Garante que a sidebar e o botão de filtros apareçam */
+        
+        /* 2. Remove especificamente o botão de "Fullscreen" e o "Built with Streamlit" */
+        .stActionButton, .stAppDeployButton, button[title="View fullscreen"] {
+            display: none !important;
+        }
+        
+        /* 3. Remove a barra de status inferior do Streamlit */
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+        }
+
+        /* 4. Garante que a sidebar e filtros apareçam */
         [data-testid="stSidebar"], [data-testid="collapsedControl"] { 
             display: flex !important; 
         }
-        /* Ajusta o topo para os filtros ficarem visíveis e sem espaços mortos */
+        
+        /* 5. Ajusta o topo para os filtros ficarem visíveis */
         .main .block-container { 
             padding-top: 2rem !important; 
         }
