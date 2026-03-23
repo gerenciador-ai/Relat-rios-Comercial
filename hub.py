@@ -28,27 +28,27 @@ COLOR_BG = "#0A1E2E"
 if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
     st.markdown(f"""
     <style>
-        /* REMOVE A ELIPSE/LINHA COLORIDA NO TOPO */
-        [data-testid="stDecoration"] {{
+        /* 1. Remove o espaço/bloco vazio no topo (O RETÂNGULO DA IMAGEM) */
+        [data-testid="stVerticalBlock"] > div:first-child {{
             display: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }}
-        /* REMOVE A "SETINHA" DA SIDEBAR */
-        [data-testid="collapsedControl"] {{
-            display: none !important;
+        
+        /* 2. Remove o padding extra do topo do app */
+        .block-container {{
+            padding-top: 0rem !important;
+            padding-bottom: 0rem !important;
         }}
-        /* REMOVE A SIDEBAR EM SI */
-        [data-testid="stSidebar"] {{
-            display: none !important;
-        }}
-        /* REMOVE O MENU SUPERIOR (GITHUB/STREAMLIT) */
-        [data-testid="stHeader"] {{
-            display: none !important;
-        }}
-        /* REMOVE O RODAPÉ "MADE WITH STREAMLIT" */
-        footer {{
-            display: none !important;
-        }}
-        /* GARANTE A COR DE FUNDO CORRETA NO HUB */
+
+        /* 3. Mantém as outras remoções necessárias */
+        [data-testid="stDecoration"] {{ display: none !important; }}
+        [data-testid="collapsedControl"] {{ display: none !important; }}
+        [data-testid="stSidebar"] {{ display: none !important; }}
+        [data-testid="stHeader"] {{ display: none !important; }}
+        footer {{ display: none !important; }}
+        
+        /* 4. Cor de fundo */
         .stApp {{
             background-color: {COLOR_BG};
         }}
