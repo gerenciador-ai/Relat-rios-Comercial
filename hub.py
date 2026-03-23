@@ -14,18 +14,17 @@ st.set_page_config(
 )
 
 # --- 2. INICIALIZAÇÃO DOS ESTADOS DE SESSÃO ---
-if 'usuario_logado' not in st.session_state: st.session_state.usuario_logado = True # Sempre True pois o login é na Vercel
-if 'modulo' not in st.session_state: st.session_state.modulo = 'comercial' # Abre direto no Comercial
+# Definimos como True para integrar com o login do Portal Vercel
+if 'usuario_logado' not in st.session_state: st.session_state.usuario_logado = True
+if 'modulo' not in st.session_state: st.session_state.modulo = 'comercial'
 
 # --- 3. CORES E ESTILOS ---
-COLOR_PRIMARY = "#0B2A4E"
-COLOR_SECONDARY = "#89CFF0"
-COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
-# --- 4. CSS DE LIMPEZA (REMOVE CABEÇALHO E RODAPÉ DO STREAMLIT) ---
+# --- 4. CSS DE LIMPEZA E LIBERAÇÃO DE IFRAME ---
 st.markdown(f"""
     <style>
+        /* Remove elementos do Streamlit para parecer nativo no portal */
         [data-testid="stHeader"], [data-testid="stDecoration"], footer {{ display: none !important; }}
         [data-testid="collapsedControl"], [data-testid="stSidebar"] {{ display: none !important; }}
         .main .block-container {{ padding-top: 0rem !important; }}
@@ -33,8 +32,9 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. NAVEGAÇÃO DIRETA (INTEGRAÇÃO COM PORTAL VERCEL) ---
+# --- 5. CARREGAMENTO DO MÓDULO COMERCIAL ---
 try:
+    # O comando exec() carrega o comercial.py diretamente
     with open("comercial/comercial.py", encoding="utf-8") as f:
         exec(f.read())
 except Exception as e:
