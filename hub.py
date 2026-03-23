@@ -19,6 +19,24 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
+# --- BLOCO DE INJEÇÃO DE CSS PARA OCULTAÇÃO TOTAL (INSERIR AQUI) ---
+st.markdown(f"""
+<style>
+    /* Remove a sidebar completamente no Hub */
+    [data-testid="stSidebar"] {{
+        display: none !important;
+    }}
+    /* Remove o botão de seta/elipse (controle de colapso) */
+    [data-testid="collapsedControl"] {{
+        display: none !important;
+    }}
+    /* Deixa o fundo do app na cor correta */
+    .stApp {{
+        background-color: {COLOR_BG};
+    }}
+</style>
+""", unsafe_allow_html=True)
+
 # CONFIGURAÇÕES DE ACESSO (LITERAL DO COMERCIAL.PY)
 USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
 SENHA_MESTRA = 'Acelerar@2026'
