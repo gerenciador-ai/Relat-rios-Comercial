@@ -28,17 +28,15 @@ COLOR_BG = "#0A1E2E"
 if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
     st.markdown(f"""
     <style>
-        /* 1. Remove o espaço/bloco vazio no topo (O RETÂNGULO DA IMAGEM) */
-        [data-testid="stVerticalBlock"] > div:first-child {{
-            display: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }}
-        
-        /* 2. Remove o padding extra do topo do app */
+        /* 1. Remove o padding/espaço morto do topo da página */
         .block-container {{
             padding-top: 0rem !important;
-            padding-bottom: 0rem !important;
+            margin-top: -2rem !important; /* Puxa o conteúdo para cima */
+        }}
+        
+        /* 2. Esconde o container que o Streamlit cria para o próprio CSS */
+        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stMarkdown"] > div[style*="display: none"]) {{
+            display: none !important;
         }}
 
         /* 3. Mantém as outras remoções necessárias */
