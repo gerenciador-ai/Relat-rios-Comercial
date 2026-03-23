@@ -24,14 +24,34 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
+# --- REMOVER SIDEBAR E MENUS ---
 if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
     st.markdown(f"""
     <style>
-        [data-testid="collapsedControl"] {{ display: none !important; }}
-        [data-testid="stSidebar"] {{ display: none !important; }}
-        [data-testid="stHeader"] {{ display: none !important; }}
-        footer {{ display: none !important; }}
-        .stApp {{ background-color: {COLOR_BG}; }}
+        /* REMOVE A ELIPSE/LINHA COLORIDA NO TOPO */
+        [data-testid="stDecoration"] {{
+            display: none !important;
+        }}
+        /* REMOVE A "SETINHA" DA SIDEBAR */
+        [data-testid="collapsedControl"] {{
+            display: none !important;
+        }}
+        /* REMOVE A SIDEBAR EM SI */
+        [data-testid="stSidebar"] {{
+            display: none !important;
+        }}
+        /* REMOVE O MENU SUPERIOR (GITHUB/STREAMLIT) */
+        [data-testid="stHeader"] {{
+            display: none !important;
+        }}
+        /* REMOVE O RODAPÉ "MADE WITH STREAMLIT" */
+        footer {{
+            display: none !important;
+        }}
+        /* GARANTE A COR DE FUNDO CORRETA NO HUB */
+        .stApp {{
+            background-color: {COLOR_BG};
+        }}
     </style>
     """, unsafe_allow_html=True)
 
