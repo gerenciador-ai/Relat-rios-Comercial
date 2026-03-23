@@ -403,19 +403,13 @@ else:
 
         st.divider()
         if st.button("🚪 Sair", use_container_width=True):
-            # 1. Limpa o estado interno do Streamlit
             st.session_state.usuario_logado = False
-            
-            # 2. COMANDO MESTRE: Força a página PAI (Vercel) a recarregar do zero
+            # O comando 'replace' impede que o usuário volte usando o botão "voltar" do navegador
             st.markdown("""
                 <script>
-                    // Este comando "quebra" o iframe e redireciona a página principal
-                    window.top.location.href = "https://portal-acelerar.vercel.app/";
+                    window.top.location.replace("https://portal-acelerar.vercel.app/" );
                 </script>
-            """, unsafe_allow_html=True )
-            
-            # 3. Fallback de segurança (Tag Meta)
-            st.markdown('<meta http-equiv="refresh" content="0; url=https://portal-acelerar.vercel.app/">', unsafe_allow_html=True )
+            """, unsafe_allow_html=True)
             st.stop()
 
     # Lógica de Logo Dinâmico da Unidade
