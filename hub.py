@@ -27,27 +27,29 @@ COLOR_BG = "#0A1E2E"
 if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
     st.markdown(f"""
     <style>
-        /* 1. Remove o padding do topo e puxa o conteúdo para cima */
-        .block-container {{
-            padding-top: 0rem !important;
-            margin-top: -5rem !important;
-        }}
-        
-        /* 2. Remove a linha decorativa superior (elipse) */
-        [data-testid="stDecoration"] {{
+        /* 1. Esconde especificamente o bloco que contém este código CSS (remove o espaço vazio) */
+        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stMarkdown"] > div[style*="display: none"]),
+        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stMarkdown"] > div:empty) {{
             display: none !important;
+            height: 0px !important;
+            margin: 0px !important;
+            padding: 0px !important;
         }}
 
-        /* 3. Mantém as outras remoções de interface */
+        /* 2. Ajusta o topo da página sem cortar o conteúdo */
+        .block-container {{
+            padding-top: 1rem !important; /* Espaço mínimo para não colar no topo */
+            margin-top: 0rem !important;  /* Remove a margem negativa que cortava o texto */
+        }}
+
+        /* 3. Remove a linha decorativa e outros menus */
+        [data-testid="stDecoration"] {{ display: none !important; }}
         [data-testid="collapsedControl"] {{ display: none !important; }}
         [data-testid="stSidebar"] {{ display: none !important; }}
         [data-testid="stHeader"] {{ display: none !important; }}
         footer {{ display: none !important; }}
         
-        /* 4. Cor de fundo do portal */
-        .stApp {{
-            background-color: {COLOR_BG};
-        }}
+        .stApp {{ background-color: {COLOR_BG}; }}
     </style>
     """, unsafe_allow_html=True)
 
