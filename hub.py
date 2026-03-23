@@ -24,7 +24,7 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
-if st.session_state.modulo == 'hub':
+if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
     st.markdown(f"""
     <style>
         [data-testid="collapsedControl"] {{ display: none !important; }}
