@@ -5,6 +5,11 @@ from datetime import datetime
 import requests
 from io import StringIO
 
+# ESTADOS DE SESSÃO
+if 'usuario_logado' not in st.session_state: st.session_state.usuario_logado = False
+if 'email_usuario' not in st.session_state: st.session_state.email_usuario = None
+if 'modulo' not in st.session_state: st.session_state.modulo = 'hub'
+
 # --- CONFIGURAÇÃO DA PÁGINA (ESTILO SÊNIOR PREMIUM DO COMERCIAL.PY) ---
 st.set_page_config(
     layout="wide", 
@@ -22,37 +27,17 @@ COLOR_BG = "#0A1E2E"
 if st.session_state.modulo == 'hub':
     st.markdown(f"""
     <style>
-        /* Oculta o botão de expandir/recolher a sidebar (A SETINHA) */
-        [data-testid="collapsedControl"] {{
-            display: none !important;
-        }}
-        /* Oculta a sidebar em si */
-        [data-testid="stSidebar"] {{
-            display: none !important;
-        }}
-        /* Oculta o menu superior (GitHub/Streamlit) */
-        [data-testid="stHeader"] {{
-            display: none !important;
-        }}
-        /* Oculta o rodapé "Made with Streamlit" */
-        footer {{
-            display: none !important;
-        }}
-        /* Garante a cor de fundo correta no Hub */
-        .stApp {{
-            background-color: {COLOR_BG};
-        }}
+        [data-testid="collapsedControl"] {{ display: none !important; }}
+        [data-testid="stSidebar"] {{ display: none !important; }}
+        [data-testid="stHeader"] {{ display: none !important; }}
+        footer {{ display: none !important; }}
+        .stApp {{ background-color: {COLOR_BG}; }}
     </style>
     """, unsafe_allow_html=True)
 
 # CONFIGURAÇÕES DE ACESSO (LITERAL DO COMERCIAL.PY)
 USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
 SENHA_MESTRA = 'Acelerar@2026'
-
-# ESTADOS DE SESSÃO
-if 'usuario_logado' not in st.session_state: st.session_state.usuario_logado = False
-if 'email_usuario' not in st.session_state: st.session_state.email_usuario = None
-if 'modulo' not in st.session_state: st.session_state.modulo = 'hub'
 
 # FUNÇÃO DE CARREGAMENTO (LITERAL DO COMERCIAL.PY)
 @st.cache_data(ttl=600)
