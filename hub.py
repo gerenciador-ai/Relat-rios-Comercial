@@ -19,29 +19,20 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
-# --- LÓGICA DE CSS CONDICIONAL PARA O HUB.PY ---
 if st.session_state.modulo == 'hub':
     st.markdown(f"""
     <style>
-        /* Oculta a sidebar principal */
-        [data-testid="stSidebar"] {{
-            display: none !important;
-        }}
-        /* Oculta o botão de expandir/recolher a sidebar */
+        /* Oculta o botão de expandir/recolher a sidebar (A SETINHA) */
         [data-testid="collapsedControl"] {{
             display: none !important;
         }}
-        /* Oculta o cabeçalho superior (inclui o link do GitHub se presente) */
+        /* Oculta a sidebar em si */
+        [data-testid="stSidebar"] {{
+            display: none !important;
+        }}
+        /* Oculta o menu superior (GitHub/Streamlit) */
         [data-testid="stHeader"] {{
             display: none !important;
-        }}
-        /* Oculta o rodapé "Made with Streamlit" */
-        footer {{
-            display: none !important;
-        }}
-        /* Define a cor de fundo do aplicativo */
-        .stApp {{
-            background-color: {COLOR_BG};
         }}
     </style>
     """, unsafe_allow_html=True)
