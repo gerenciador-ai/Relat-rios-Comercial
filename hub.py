@@ -1,125 +1,116 @@
-import pandas as pd
 import streamlit as st
-import plotly.express as px
-from datetime import datetime
+import pandas as pd
 import requests
 from io import StringIO
 
-# --- CONFIGURAÇÃO DA PÁGINA (ESTILO SÊNIOR PREMIUM DO COMERCIAL.PY) ---
+# 1. CONFIGURAÇÃO DA PÁGINA (ESTRITAMENTE NECESSÁRIA)
 st.set_page_config(
     layout="wide", 
-    page_title="Hub Holding Acelerar - Portal Estratégico", 
+    page_title="Holding Acelerar - Portal de Gestão", 
     page_icon="🏢", 
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# CORES EXATAS DO SEU COMERCIAL.PY
-COLOR_PRIMARY = "#0B2A4E"
-COLOR_SECONDARY = "#89CFF0"
-COLOR_TEXT = "#FFFFFF"
-COLOR_BG = "#0A1E2E"
+# 2. DEFINIÇÃO DE CONSTANTES E SEGURANÇA
+SHEET_ID = "15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk"
+MASTER_KEY = "Acelerar@2026"
+LOGO_URL = "https://raw.githubusercontent.com/gerenciador-ai/Relat-rios-Comercial/main/logo_acelerar_sidebar.png"
 
-# CONFIGURAÇÕES DE ACESSO (LITERAL DO COMERCIAL.PY)
-USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
-SENHA_MESTRA = 'Acelerar@2026'
+# 3. GERENCIAMENTO DE ESTADO (SESSION STATE )
+if "auth" not in st.session_state:
+    st.session_state.auth = False
+if "user" not in st.session_state:
+    st.session_state.user = None
+if "view" not in st.session_state:
+    st.session_state.view = "portal"
 
-# ESTADOS DE SESSÃO
-if 'usuario_logado' not in st.session_state: st.session_state.usuario_logado = False
-if 'email_usuario' not in st.session_state: st.session_state.email_usuario = None
-if 'modulo' not in st.session_state: st.session_state.modulo = 'hub'
-
-# FUNÇÃO DE CARREGAMENTO (LITERAL DO COMERCIAL.PY)
+# 4. MOTOR DE AUTENTICAÇÃO
 @st.cache_data(ttl=600)
-def carregar_usuarios_autorizados():
+def fetch_authorized_users():
     try:
-        url = f"https://docs.google.com/spreadsheets/d/{USUARIOS_SHEET_ID}/export?format=csv"
-        response = requests.get(url )
-        if response.status_code == 200:
-            df = pd.read_csv(StringIO(response.text))
-            return df.iloc[:, 0].astype(str).str.strip().str.lower().tolist()
+        endpoint = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/export?format=csv"
+        res = requests.get(endpoint, timeout=10 )
+        if res.status_code == 200:
+            data = pd.read_csv(StringIO(res.text))
+            return data.iloc[:, 0].astype(str).str.strip().str.lower().tolist()
         return []
-    except:
+    except Exception:
         return []
 
-# CSS DO LOGIN (ESTILO SÊNIOR PREMIUM DO COMERCIAL.PY)
-st.markdown(f"""
-    <style>
-    .main {{ background-color: {COLOR_BG}; }}
-    .login-container {{
-        background-color: {COLOR_PRIMARY};
-        padding: 40px;
-        border-radius: 15px;
-        border: 1px solid {COLOR_SECONDARY};
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        max-width: 450px;
-        margin: auto;
-        text-align: center;
-    }}
-    </style>
-""", unsafe_allow_html=True)
+# 5. INJEÇÃO DE INTERFACE (CSS BLINDADO)
+# Uso de strings curtas para evitar erros de interpretador em servidores Linux/Cloud
+style = "<style>"
+style += "div[data-testid='stAppViewContainer'] { background-color: #0A1E2E; }"
+style += "section[data-testid='stSidebar'] { display: none !important; }"
+style += "[data-testid='collapsedControl'] { display: none !important; }"
+style += "header { visibility: hidden !important; }" # Esconde menu do Streamlit
+style += "footer { visibility: hidden !important; }" # Esconde rodapé do Streamlit
+style += ".login-card { background-color: #0B2A4E; padding: 50px; border-radius: 20px; "
+style += "border: 1px solid #89CFF0; box-shadow: 0 15px 35px rgba(0,0,0,0.6); "
+style += "max-width: 480px; margin: 8% auto; text-align: center; }"
+style += "</style>"
+st.markdown(style, unsafe_allow_html=True)
 
-def tela_login():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
-        # Usando o logo de login centralizado
-        st.image("https://raw.githubusercontent.com/gerenciador-ai/Relat-rios-Comercial/main/logo_acelerar_sidebar.png", width=250 )
-        st.markdown(f"<h2 style='color: {COLOR_TEXT};'>Portal da Holding</h2>", unsafe_allow_html=True)
+# 6. COMPONENTES DE INTERFACE
+def render_login():
+    _, center, _ = st.columns([1, 2, 1])
+    with center:
+        st.markdown("<div class='login-card'>", unsafe_allow_html=True)
+        st.image(LOGO_URL, width=280)
+        st.markdown("<h2 style='color: white; margin-bottom: 30px;'>Acesso Restrito</h2>", unsafe_allow_html=True)
         
-        email = st.text_input("E-mail corporativo")
-        senha = st.text_input("Senha mestra", type="password")
+        input_user = st.text_input("Usuário (E-mail)", placeholder="exemplo@acelerar.tech")
+        input_pass = st.text_input("Senha Mestra", type="password")
         
-        if st.button("Acessar Portal", use_container_width=True):
-            usuarios_permitidos = carregar_usuarios_autorizados()
-            email_input = email.strip().lower()
+        st.markdown("  
+", unsafe_allow_html=True)
+        if st.button("Entrar no Portal", use_container_width=True, type="primary"):
+            valid_users = fetch_authorized_users()
+            clean_user = input_user.strip().lower()
             
-            # VERIFICAÇÃO LITERAL DO COMERCIAL.PY
-            if (email_input in usuarios_permitidos or email_input == 'acelerar@acelerar.tech') and senha == SENHA_MESTRA:
-                st.session_state.usuario_logado = True
-                st.session_state.email_usuario = email_input
+            if (clean_user in valid_users or clean_user == "acelerar@acelerar.tech") and input_pass == MASTER_KEY:
+                st.session_state.auth = True
+                st.session_state.user = clean_user
                 st.rerun()
             else:
-                st.error("❌ Acesso negado. Verifique seu e-mail ou a senha mestra.")
+                st.error("Credenciais inválidas ou usuário não autorizado.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-def portal_hub():
-    st.title(f"🚀 Bem-vindo, {st.session_state.email_usuario.split('@')[0].upper()}!")
-    st.subheader("Escolha o módulo da Holding Acelerar:")
+def render_portal():
+    st.markdown("<h1 style='color: white; text-align: center;'>Painel de Gestão Holding</h1>", unsafe_allow_html=True)
     st.divider()
     
-    col1, col2 = st.columns(2)
-    with col1:
+    c1, c2 = st.columns(2)
+    with c1:
         st.info("### 📊 Módulo Comercial")
-        st.write("Vendas, Churn e Inadimplência.")
-        if st.button("Acessar Comercial", use_container_width=True, type="primary"):
-            st.session_state.modulo = 'comercial'
+        if st.button("Acessar Dashboard Comercial", use_container_width=True):
+            st.session_state.view = "comercial"
             st.rerun()
-    with col2:
+            
+    with c2:
         st.success("### 💰 Módulo Financeiro")
-        st.write("DRE, DFC e Nibo (Bllog).")
-        if st.button("Acessar Financeiro", use_container_width=True, type="primary"):
-            st.session_state.modulo = 'financeiro'
+        if st.button("Acessar DRE / Nibo", use_container_width=True):
+            st.session_state.view = "financeiro"
             st.rerun()
-    
+            
     st.divider()
-    if st.button("🚪 Sair do Portal"):
-        st.session_state.usuario_logado = False
+    if st.button("Sair"):
+        st.session_state.auth = False
         st.rerun()
 
-# NAVEGAÇÃO PRINCIPAL
-if not st.session_state.usuario_logado:
-    tela_login()
+# 7. ORQUESTRAÇÃO DE NAVEGAÇÃO
+if not st.session_state.auth:
+    render_login()
 else:
-    if st.session_state.modulo == 'hub':
-        portal_hub()
-    elif st.session_state.modulo == 'comercial':
+    if st.session_state.view == "portal":
+        render_portal()
+    elif st.session_state.view == "comercial":
         try:
             with open("comercial/comercial.py", encoding="utf-8") as f:
                 exec(f.read())
         except Exception as e:
-            st.error(f"Erro ao carregar comercial.py: {e}")
-    elif st.session_state.modulo == 'financeiro':
-        st.info("Módulo Financeiro em desenvolvimento.")
-        if st.button("Voltar ao Hub"):
-            st.session_state.modulo = 'hub'
-            st.rerun()
+            st.error(f"Erro ao carregar módulo: {e}")
+            if st.button("Voltar"): st.session_state.view = "portal"; st.rerun()
+    elif st.session_state.view == "financeiro":
+        st.warning("Módulo Financeiro em fase de integração.")
+        if st.button("Voltar"): st.session_state.view = "portal"; st.rerun()
