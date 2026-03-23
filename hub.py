@@ -24,35 +24,6 @@ COLOR_SECONDARY = "#89CFF0"
 COLOR_TEXT = "#FFFFFF"
 COLOR_BG = "#0A1E2E"
 
-if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
-    st.markdown(f"""
-    <style>
-        /* 1. Esconde especificamente o bloco que contém este código CSS (remove o espaço vazio) */
-        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stMarkdown"] > div[style*="display: none"]),
-        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stMarkdown"] > div:empty) {{
-            display: none !important;
-            height: 0px !important;
-            margin: 0px !important;
-            padding: 0px !important;
-        }}
-
-        /* 2. Ajusta o topo da página sem cortar o conteúdo */
-        .block-container {{
-            padding-top: 1rem !important; /* Espaço mínimo para não colar no topo */
-            margin-top: 0rem !important;  /* Remove a margem negativa que cortava o texto */
-        }}
-
-        /* 3. Remove a linha decorativa e outros menus */
-        [data-testid="stDecoration"] {{ display: none !important; }}
-        [data-testid="collapsedControl"] {{ display: none !important; }}
-        [data-testid="stSidebar"] {{ display: none !important; }}
-        [data-testid="stHeader"] {{ display: none !important; }}
-        footer {{ display: none !important; }}
-        
-        .stApp {{ background-color: {COLOR_BG}; }}
-    </style>
-    """, unsafe_allow_html=True)
-
 # CONFIGURAÇÕES DE ACESSO (LITERAL DO COMERCIAL.PY)
 USUARIOS_SHEET_ID = '15FsHefIdRzwUGm6FcpQQF-qiOtPwYHd-v70MwErOAMk'
 SENHA_MESTRA = 'Acelerar@2026'
@@ -152,3 +123,35 @@ else:
         if st.button("Voltar ao Hub"):
             st.session_state.modulo = 'hub'
             st.rerun()
+
+if not st.session_state.usuario_logado or st.session_state.modulo == 'hub':
+    st.markdown(f"""
+    <style>
+        /* 1. Remove o espaço morto do topo de forma limpa */
+        .main .block-container {{
+            padding-top: 1rem !important;
+            padding-bottom: 0rem !important;
+        }}
+        
+        /* 2. Remove o container que causa o retângulo azul (o bloco vazio) */
+        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stMarkdown"] > div[style*="display: none"]),
+        div[data-testid="stVerticalBlock"] > div:empty {{
+            display: none !important;
+            height: 0px !important;
+            margin: 0px !important;
+            padding: 0px !important;
+        }}
+
+        /* 3. Remove decoração, sidebar, cabeçalho e rodapé */
+        [data-testid="stDecoration"], 
+        [data-testid="collapsedControl"], 
+        [data-testid="stSidebar"], 
+        [data-testid="stHeader"], 
+        footer {{
+            display: none !important;
+        }}
+        
+        /* 4. Garante a cor de fundo */
+        .stApp {{ background-color: {COLOR_BG}; }}
+    </style>
+    """, unsafe_allow_html=True)
