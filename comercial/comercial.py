@@ -31,7 +31,7 @@ st.markdown("""
         [data-testid="stStatusWidget"] {
             display: none !important;
         }
-
+        
         /* 4. Garante que a sidebar e filtros apareçam */
         [data-testid="stSidebar"], [data-testid="collapsedControl"] { 
             display: flex !important; 
@@ -65,6 +65,9 @@ LOGOS = {
     "VMC_TECH": get_github_url("logo_vmctech.png"),
     "VICTEC": get_github_url("logo_victec.png")
 }
+
+# --- 5. GARANTE QUE O DASHBOARD ABRA SEMPRE (O LOGIN É NO PORTAL VERCEL) ---
+st.session_state.usuario_logado = True
 
 # Estilização CSS Customizada - VERSÃO WHITE LABEL (LIMPEZA TOTAL E LOGIN REPOSICIONADO)
 st.markdown(f"""
@@ -412,17 +415,6 @@ else:
             vend_sel = "Todos"
             sdr_sel = "Todos"
             df_ano = df_p.copy() if df_p is not None else pd.DataFrame()
-
-        st.divider()
-        if st.button("🚪 Sair", use_container_width=True):
-            st.session_state.usuario_logado = False
-            # O comando 'replace' impede que o usuário volte usando o botão "voltar" do navegador
-            st.markdown("""
-                <script>
-                    window.top.location.replace("https://portal-acelerar.vercel.app/" );
-                </script>
-            """, unsafe_allow_html=True)
-            st.stop()
 
     # Lógica de Logo Dinâmico da Unidade
     logo_unidade_url = LOGOS["VMC_TECH"] if st.session_state.empresa == "VMC Tech" else LOGOS["VICTEC"]
