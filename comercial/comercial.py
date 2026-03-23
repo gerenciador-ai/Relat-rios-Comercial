@@ -403,8 +403,19 @@ else:
 
         st.divider()
         if st.button("🚪 Sair", use_container_width=True):
+            # 1. Limpa o estado interno do Streamlit
             st.session_state.usuario_logado = False
-            st.rerun()
+            
+            # 2. Força o navegador a sair do iframe e voltar para o Portal na Vercel
+            st.markdown("""
+                <script>
+                    window.parent.location.href = "https://portal-acelerar.vercel.app/";
+                </script>
+            """, unsafe_allow_html=True )
+            
+            # 3. Fallback (caso o script falhe em algum navegador)
+            st.markdown('<meta http-equiv="refresh" content="0; url=https://portal-acelerar.vercel.app/">', unsafe_allow_html=True )
+            st.stop()
 
     # Lógica de Logo Dinâmico da Unidade
     logo_unidade_url = LOGOS["VMC_TECH"] if st.session_state.empresa == "VMC Tech" else LOGOS["VICTEC"]
